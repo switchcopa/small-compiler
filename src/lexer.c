@@ -33,6 +33,7 @@ peek(struct lexer *lexer)
     return (unsigned char)*lexer->p;
 }
 
+/* should add column modifications later*/
 inline static unsigned char
 next(struct lexer *lexer)
 {
@@ -169,6 +170,21 @@ lex_num(struct lexer *lexer)
     emit(t);
 }
 
+/*  task: write the proper skip_whitespace to
+    skip all spaces and tabs, while updating
+    the lexer line and column
+
+    this function should loop through the 
+    characters of the source code, if the char
+    is a space, we call skip_whitespace, if it's
+    a character, we call lex_ident, if it's a num,
+    we call lex_num, and if not all of this,
+    we call get_symbol_type
+
+    in the end, we finish with an end token.
+    we should have the tokens[] array, to be
+    passed to the parser.
+    */
 struct lexer lex(const char *src)
 {
     struct lexer lexer;

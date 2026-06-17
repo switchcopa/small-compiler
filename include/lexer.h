@@ -24,7 +24,7 @@ enum toktype
     STAR,
     FSLASH,
     SEMICOLON,
-    NULL,
+    END,
     UNKNOWN
 };
 
