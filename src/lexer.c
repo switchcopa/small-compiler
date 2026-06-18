@@ -130,7 +130,7 @@ lex_ident(struct lexer *lexer)
     unsigned char c;
     int i = 0;
 
-    while ((c = next(lexer)) && (isalnum(c) || c == '_'))
+    while ((c = next(lexer)) && (isalnum(c) || c == '_')) // major bug in next()
     {
         if (i < MAX_IDENT)
             t.ident[i++] = c;
@@ -155,7 +155,7 @@ lex_num(struct lexer *lexer)
     struct token t;
     int i = 0;
 
-    while (isdigit( c = next(lexer) ))
+    while (isdigit( c = next(lexer) )) // major bug here too
     {
         if (i < MAX_IDENT)
             num[i++] = c;
@@ -185,7 +185,8 @@ lex_num(struct lexer *lexer)
     we should have the tokens[] array, to be
     passed to the parser.
     */
-struct lexer lex(const char *src)
+struct lexer
+lex(const char *src)
 {
     struct lexer lexer;
 
