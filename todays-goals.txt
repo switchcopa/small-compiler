@@ -1,18 +1,4 @@
 
-wrote the basics of lexer.h
-and some basic stuff of lexer.c
 
-will write full lexer.c later
-
-/*
-Hello , world!\n
-Hi!\0
-*/
-
-objectives:
-write the next() and skip_whitespace() functions:
-skip all whitespaces until we have some 
-meaningful character (non space char),
-as we skip the characters, if we see a 
-space, if it's a newline, we update the lines and
-column
+todays goals: test the lexer, fix
+some compiler complains, etc...
