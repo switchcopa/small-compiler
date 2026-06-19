@@ -58,10 +58,6 @@ struct lexer
     int                  err;
 };
 
-void         skip_whitespace(struct lexer *lexer);
-void         lex_symbol(struct lexer *lexer);
-void         lex_ident(struct lexer *lexer);
-void         lex_num(struct lexer *lexer);
 struct lexer lex(const unsigned char *src); // questionable?
 
 extern struct token tokens[];

@@ -65,11 +65,11 @@ int main(int argc, char **argv)
     (void)lex(buf);
     for (size_t i = 0; i < ntokens; i++)
     {
-        char *p = str_toktypes[(int)tokens[i].kind];
-        fprintf(stdout, "%s ", p);
+        struct token t = tokens[i];
+        char *p = str_toktypes[(int)t.kind];
+        fprintf(stdout, "%i:%i %s\n", t.line, t.column, p);
     }
 
-    fprintf(stdout, "\n");
     free(buf);
     return EXIT_SUCCESS;
 }

@@ -104,7 +104,7 @@ get_symbol_type(struct lexer *lexer, const unsigned char c)
     }
 }
 
-void
+static void
 skip_whitespace(struct lexer *lexer)
 {
     unsigned char c;
@@ -121,7 +121,7 @@ skip_whitespace(struct lexer *lexer)
     }
 }
 
-void
+static void
 lex_symbol(struct lexer *lexer)
 {
     struct token t;
@@ -135,7 +135,7 @@ lex_symbol(struct lexer *lexer)
     (void)next(lexer);
 }
 
-void
+static void
 lex_ident(struct lexer *lexer)
 {
     if (!is_ident_start(peek(lexer)))
@@ -161,7 +161,7 @@ lex_ident(struct lexer *lexer)
     emit(t);
 }
 
-void
+static void
 lex_num(struct lexer *lexer)
 {
     if (!isdigit(peek(lexer)))
