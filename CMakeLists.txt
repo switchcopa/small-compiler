@@ -8,12 +8,14 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(SOURCES
-    main.c
+    codegen.c
     lexer.c
+    lexer_table.c
+    main.c
     parser.c
     semantics.c
     symbol.c
-    codegen.c
+    types.c
 )
 
 add_executable(small-compiler ${SOURCES})

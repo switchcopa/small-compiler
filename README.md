@@ -17,7 +17,7 @@ small-compiler documents my journey in systems programming, this includes my com
 
 To make this and run the code, you need:
 * a Linux x86-64 environment
-* gcc/clang compiler for C.
+* gcc/clang compiler for C (there are extensions that only exist in these compilers)
 * **CMake** 3.10+
 
 ### Building the compiler
@@ -45,7 +45,7 @@ Currently, the project only has a lexer, more features will be added soon.
 
 ## 'To-do's
 
-* Finish the lexer.
+* Finish the lexer (testing).
 * Add the parser.
 * Generate the assembly.
 

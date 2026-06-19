@@ -1,23 +1,12 @@
 /* lexer.c */
 
-/* 
- * Design flaw:
- * functions like isalpha(), isalnum()
- * we are forced to cast to an unsigned
- * char, and there are other problems
- * such that they can return true on some
- * characters that we don't want.
- *
- * solution: write custom functions that 
- * checks the range of characters
- */
-
 #include "lexer.h"
 #include "types.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 struct token tokens[MAX_TOKENS];
 size_t ntokens;
@@ -25,7 +14,21 @@ struct kwentry kwtable[] =
 {
     { KWORD_INT, "int" }
 };
-size_t nkw = sizeof(kwtable)/sizeof(kwtable[0]);
+size_t nkw = sizeof(kwtable) / sizeof(kwtable[0]);
+
+static inline bool
+is_ident_start(unsigned char c)
+{
+    return (c >= 'a' && c <= 'z') ||
+           (c >= 'A' && c <= 'Z') ||
+           (c == '_');
+}
+
+static inline bool
+is_ident_body(unsigned char c)
+{
+    return is_ident_start(c) || isdigit(c);
+}
 
 static inline void
 emit(struct token t)
@@ -42,50 +45,37 @@ emit(struct token t)
 static inline unsigned char
 peek(struct lexer *lexer)
 {
-    return (unsigned char)*lexer->p;
+    return *lexer->p;
 }
 
-/* should add column modifications later*/
 static inline unsigned char
 next(struct lexer *lexer)
 {
-    return (peek(lexer)) ? (unsigned char)*lexer->p++ : '\0';
+    if (peek(lexer))
+    {
+        lexer->column++;
+        return *lexer->p++;
+    } else
+        return '\0';
 }
 
-/*
-inline static void
-back(struct lexer *lexer)
-{
-    lexer->p--;
-}
-
-inline static struct token
-make_token(enum toktype kind, int line, int err)
-{
-    struct token t;
-
-    t.kind = kind;
-    t.line = line;
-    t.err = err;
-
-    return t;
-}
-
-inline static void
+static inline void
 skip_whitespace(struct lexer *lexer)
 {
-    while (peek(lexer) && isspace(*lexer->p))
-        next(lexer);
+    for (unsigned char c = peek(lexer);
+            c && isspace(c); )
+    {
+        c = peek(lexer);
+        if (c == '\n')
+        {
+            lexer->column = 1;
+            lexer->line++;
+        }
+        else if (c == '\t')
+            lexer->column += COLUMN_TAB_INCREMENT(lexer->column);
+        (void)next(lexer);
+    }
 }
-
-inline static void
-recover(struct lexer *lexer)
-{
-    unsigned char c;
-    while ((c = peek(lexer)) != ';' && c)
-        c = next(lexer);
-}
-*/
 
 static inline void
 copy_data(struct lexer *lexer, struct token *t)
@@ -132,9 +122,23 @@ get_symbol_type(struct lexer *lexer, const unsigned char c)
 }
 
 static void
+lex_symbol(struct lexer *lexer)
+{
+    struct token t;
+    unsigned char c = peek(lexer);
+    t.kind = get_symbol_type(c);
+    t.err = 0;
+    if (t.kind == UNKNOWN)
+        t.err = lexer->err = 1;
+    copy_data(lexer, &t);
+    emit(t);
+    (void)next(lexer);
+}
+
+static void
 lex_ident(struct lexer *lexer)
 {
-    if (!isalpha(peek(lexer)))
+    if (!is_ident_start(peek(lexer)))
         return;
 
     struct token t;
@@ -142,16 +146,17 @@ lex_ident(struct lexer *lexer)
     unsigned char c;
     int i = 0;
 
-    while ((c = next(lexer)) && (isalnum(c) || c == '_')) // major bug in next()
+    while ((c = peek(lexer)) && is_ident_body(c))
     {
         if (i < MAX_IDENT)
             t.ident[i++] = c;
-        else continue; // just ignore large identifiers without buffer overflowing
+        (void)next(lexer);
     }
 
     t.ident[i] = '\0';
     t.err = 0;
-    t.kind = ((p = get_kwentry(t.ident))) ? p->kind : IDENT;
+    t.kind = ( (p = get_kwentry(t.ident)) ) 
+                ? p->kind : IDENT;
     copy_data(lexer, &t);
     emit(t);
 }
@@ -163,15 +168,14 @@ lex_num(struct lexer *lexer)
         return;
 
     char num[MAX_IDENT + 1];
-    unsigned char c;
     struct token t;
     int i = 0;
 
-    while (isdigit( c = next(lexer) )) // major bug here too
+    while (isdigit(peek(lexer)))
     {
+        unsigned char c = next(lexer);
         if (i < MAX_IDENT)
             num[i++] = c;
-        else continue;
     }
 
     num[i] = '\0';
@@ -182,32 +186,18 @@ lex_num(struct lexer *lexer)
     emit(t);
 }
 
-/*  task: write the proper skip_whitespace to
-    skip all spaces and tabs, while updating
-    the lexer line and column
-
-    this function should loop through the 
-    characters of the source code, if the char
-    is a space, we call skip_whitespace, if it's
-    a character, we call lex_ident, if it's a num,
-    we call lex_num, and if not all of this,
-    we call get_symbol_type
-
-    in the end, we finish with an end token.
-    we should have the tokens[] array, to be
-    passed to the parser.
-    */
 struct lexer
-lex(const char *src)
+lex(const unsigned char *src)
 {
     struct lexer lexer;
 
     lexer.src = lexer.p = src;
     lexer.line = lexer.column = 1;
 
-    /* while (process the next character and decide
-                which function to call for it to build
-                the token array)
-    */
+    unsigned char c;    
+    while ( (c = peek(&lexer)) )
+        lexer_jump_table[c](&lexer);
+
+    lex_symbol(&lexer);    
     return lexer;
 }

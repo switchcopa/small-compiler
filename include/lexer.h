@@ -3,19 +3,25 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-#define MAX_IDENT 32
-#define MAX_TOKENS 4096
+#define MAX_IDENT       32
+#define MAX_TOKENS      4096
+#define TAB_WIDTH       4
+
+#define COLUMN_TAB_INCREMENT(c) \
+        (TAB_WIDTH - (((c) - 1) % TAB_WIDTH)
 
 #include <stddef.h>
+#include "types.h"
 
 extern struct token tokens[];
 extern size_t ntokens;
 extern struct kwentry kwtable[];
 extern size_t nkw;
+extern void (*const lexer_jump_table[256])(struct lexer *);
 
 enum toktype
 {
-    KWORD_INT,
+    KWORD_INT = 0,
     IDENT,
     INT,
     EQUALS,
@@ -33,14 +39,14 @@ struct token
     union
     {
         char ident[MAX_IDENT + 1];
-        int i;
+        int  i;
         char c;
     };
 
     enum toktype kind;
-    int line;
-    int column;
-    int err;
+    int          line;
+    int          column;
+    int          err;
 };
 
 struct kwentry
@@ -51,10 +57,10 @@ struct kwentry
 
 struct lexer
 {
-    const char *src;
-    const char *p;
-    int line;
-    int column;
+    const unsigned char* src;
+    const unsigned char* p;
+    int                  line;
+    int                  column;
 };
 
 struct lexer lex(const char *src); // questionable?
