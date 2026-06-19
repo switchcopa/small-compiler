@@ -12,9 +12,6 @@ set(SOURCES
     src/lexer.c
     src/lexer_table.c
     src/main.c
-    src/parser.c
-    src/semantics.c
-    src/symbol.c
     src/types.c
 )
 

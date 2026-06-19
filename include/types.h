@@ -3,7 +3,6 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-extern const char *str_toktypes[];
-extern const char *kwords[];
+extern char *str_toktypes[];
 
 #endif

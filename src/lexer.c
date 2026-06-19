@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <string.h>
 
 struct token tokens[MAX_TOKENS];
 size_t ntokens;
@@ -60,24 +61,6 @@ next(struct lexer *lexer)
 }
 
 static inline void
-skip_whitespace(struct lexer *lexer)
-{
-    for (unsigned char c = peek(lexer);
-            c && isspace(c); )
-    {
-        c = peek(lexer);
-        if (c == '\n')
-        {
-            lexer->column = 1;
-            lexer->line++;
-        }
-        else if (c == '\t')
-            lexer->column += COLUMN_TAB_INCREMENT(lexer->column);
-        (void)next(lexer);
-    }
-}
-
-static inline void
 copy_data(struct lexer *lexer, struct token *t)
 {
     t->line = lexer->line;
@@ -116,17 +99,33 @@ get_symbol_type(struct lexer *lexer, const unsigned char c)
             return END;
         default:
             fprintf(stderr, "%i:%i: what is this token: %c\n",
-            lexer->line, lexer->column);
+            lexer->line, lexer->column, c);
             return UNKNOWN;
     }
 }
 
-static void
+void
+skip_whitespace(struct lexer *lexer)
+{
+    for (unsigned char c = next(lexer);
+            c && isspace(c); c = next(lexer))
+    {
+        if (c == '\n')
+        {
+            lexer->column = 1;
+            lexer->line++;
+        }
+        else if (c == '\t')
+            lexer->column += COLUMN_TAB_INCREMENT(lexer->column);
+    }
+}
+
+void
 lex_symbol(struct lexer *lexer)
 {
     struct token t;
     unsigned char c = peek(lexer);
-    t.kind = get_symbol_type(c);
+    t.kind = get_symbol_type(lexer, c);
     t.err = 0;
     if (t.kind == UNKNOWN)
         t.err = lexer->err = 1;
@@ -135,7 +134,7 @@ lex_symbol(struct lexer *lexer)
     (void)next(lexer);
 }
 
-static void
+void
 lex_ident(struct lexer *lexer)
 {
     if (!is_ident_start(peek(lexer)))
@@ -161,7 +160,7 @@ lex_ident(struct lexer *lexer)
     emit(t);
 }
 
-static void
+void
 lex_num(struct lexer *lexer)
 {
     if (!isdigit(peek(lexer)))
@@ -191,8 +190,9 @@ lex(const unsigned char *src)
 {
     struct lexer lexer;
 
-    lexer.src = lexer.p = src;
+    lexer.src  = lexer.p      = src;
     lexer.line = lexer.column = 1;
+    lexer.err  = 0;
 
     unsigned char c;    
     while ( (c = peek(&lexer)) )

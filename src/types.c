@@ -2,7 +2,7 @@
 
 #include "types.h"
 
-const char *str_toktypes[] =
+char *str_toktypes[] =
 {
     "KWORD_INT",
     "IDENT",
@@ -13,9 +13,4 @@ const char *str_toktypes[] =
     "STAR",
     "FSLASH",
     "SEMICOLON"
-};
-
-const char *kwords[] =
-{
-    "int"
 };

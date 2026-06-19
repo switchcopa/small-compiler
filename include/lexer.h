@@ -8,16 +8,10 @@
 #define TAB_WIDTH       4
 
 #define COLUMN_TAB_INCREMENT(c) \
-        (TAB_WIDTH - (((c) - 1) % TAB_WIDTH)
+        (TAB_WIDTH - (((c) - 1) % TAB_WIDTH))
 
 #include <stddef.h>
 #include "types.h"
-
-extern struct token tokens[];
-extern size_t ntokens;
-extern struct kwentry kwtable[];
-extern size_t nkw;
-extern void (*const lexer_jump_table[256])(struct lexer *);
 
 enum toktype
 {
@@ -61,8 +55,20 @@ struct lexer
     const unsigned char* p;
     int                  line;
     int                  column;
+    int                  err;
 };
 
-struct lexer lex(const char *src); // questionable?
+void         skip_whitespace(struct lexer *lexer);
+void         lex_symbol(struct lexer *lexer);
+void         lex_ident(struct lexer *lexer);
+void         lex_num(struct lexer *lexer);
+struct lexer lex(const unsigned char *src); // questionable?
+
+extern struct token tokens[];
+extern size_t ntokens;
+extern struct kwentry kwtable[];
+extern size_t nkw;
+extern void   (*lexer_jump_table[256])(struct lexer *);
+
 
 #endif
