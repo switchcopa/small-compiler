@@ -5,10 +5,9 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(SOURCES
-    codegen.c
     lexer.c
     lexer_table.c
     main.c
@@ -21,19 +20,19 @@ set(SOURCES
 add_executable(small-compiler ${SOURCES})
 
 target_compile_options(small-compiler PRIVATE
-    -g
-    -Wall
-    -Wextra
-    -Wpedantic
-    -Werror
-    -O3
-    -march=native
-    -fno-omit-frame-pointer
-    -flto
+    -Wall -Wextra -Wpedantic -Werror
 )
 
-target_link_options(small-compiler PRIVATE
-    -fsanitize=address
-    -fsanitize=undefined
-    -flto
+target_compile_options(small-compiler PRIVATE 
+    $<$<CONFIG:Debug>:-g -O0 -fno-omit-frame-pointer -fsanitize=address -fsanitize=undefined>
+)
+target_link_options(small-compiler PRIVATE 
+    $<$<CONFIG:Debug>:-fsanitize=address -fsanitize=undefined>
+)
+
+target_compile_options(small-compiler PRIVATE 
+    $<$<CONFIG:Release>:-O3 -march=native -flto>
+)
+target_link_options(small-compiler PRIVATE 
+    $<$<CONFIG:Release>:-flto>
 )
