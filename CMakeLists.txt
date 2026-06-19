@@ -20,10 +20,20 @@ set(SOURCES
 
 add_executable(small-compiler ${SOURCES})
 
-target_compile_options(small_compiler PRIVATE
+target_compile_options(small-compiler PRIVATE
+    -g
     -Wall
     -Wextra
     -Wpedantic
     -Werror
+    -O3
+    -march=native
     -fno-omit-frame-pointer
+    -flto
+)
+
+target_link_options(small-compiler PRIVATE
+    -fsanitize=address
+    -fsanitize=undefined
+    -flto
 )
