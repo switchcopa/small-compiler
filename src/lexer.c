@@ -107,16 +107,17 @@ get_symbol_type(struct lexer *lexer, const unsigned char c)
 void
 skip_whitespace(struct lexer *lexer)
 {
-    for (unsigned char c = next(lexer);
-            c && isspace(c); c = next(lexer))
+    unsigned char c;
+    while ((c = peek(lexer)) && isspace(c))
     {
+        (void)next(lexer);
         if (c == '\n')
         {
             lexer->column = 1;
             lexer->line++;
         }
         else if (c == '\t')
-            lexer->column += COLUMN_TAB_INCREMENT(lexer->column);
+            lexer->column += COLUMN_TAB_INCREMENT(lexer->column) - 1;
     }
 }
 
@@ -141,6 +142,7 @@ lex_ident(struct lexer *lexer)
         return;
 
     struct token t;
+    copy_data(lexer, &t);
     struct kwentry *p;
     unsigned char c;
     int i = 0;
@@ -156,7 +158,6 @@ lex_ident(struct lexer *lexer)
     t.err = 0;
     t.kind = ( (p = get_kwentry(t.ident)) ) 
                 ? p->kind : IDENT;
-    copy_data(lexer, &t);
     emit(t);
 }
 
@@ -168,6 +169,7 @@ lex_num(struct lexer *lexer)
 
     char num[MAX_IDENT + 1];
     struct token t;
+    copy_data(lexer, &t);
     int i = 0;
 
     while (isdigit(peek(lexer)))
@@ -181,7 +183,6 @@ lex_num(struct lexer *lexer)
     t.i = atoi(num);
     t.err = 0;
     t.kind = INT;
-    copy_data(lexer, &t);
     emit(t);
 }
 
