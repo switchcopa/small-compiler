@@ -68,7 +68,6 @@ extern struct token tokens[];
 extern size_t ntokens;
 extern struct kwentry kwtable[];
 extern size_t nkw;
-extern void   (*lexer_jump_table[256])(struct lexer *);
 
 
 #endif

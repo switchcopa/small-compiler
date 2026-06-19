@@ -12,5 +12,7 @@ char *str_toktypes[] =
     "MINUS",
     "STAR",
     "FSLASH",
-    "SEMICOLON"
+    "SEMICOLON",
+    "END",
+    "UNKNOWN"
 };

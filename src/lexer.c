@@ -99,7 +99,7 @@ get_symbol_type(struct lexer *lexer, const unsigned char c)
             return END;
         default:
             fprintf(stderr, "%i:%i: what is this token: %c\n",
-            lexer->line, lexer->column, c);
+                lexer->line, lexer->column, c);
             return UNKNOWN;
     }
 }
@@ -196,7 +196,12 @@ lex(const unsigned char *src)
 
     unsigned char c;    
     while ( (c = peek(&lexer)) )
-        lexer_jump_table[c](&lexer);
+    {
+        if (is_ident_start(c)) lex_ident(&lexer);
+        else if (isdigit(c)) lex_num(&lexer);
+        else if (isspace(c)) skip_whitespace(&lexer);
+        else lex_symbol(&lexer);
+    }
 
     lex_symbol(&lexer);    
     return lexer;

@@ -10,7 +10,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(SOURCES
     src/lexer.c
-    src/lexer_table.c
     src/main.c
     src/types.c
 )

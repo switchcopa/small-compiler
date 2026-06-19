@@ -7,10 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
 
 #include "lexer.h"
 #include "types.h"
@@ -67,12 +63,13 @@ int main(int argc, char **argv)
 
     unsigned char *buf = readfile(argv[1]);
     (void)lex(buf);
-
     for (size_t i = 0; i < ntokens; i++)
     {
         char *p = str_toktypes[(int)tokens[i].kind];
         fprintf(stdout, "%s ", p);
     }
+
     fprintf(stdout, "\n");
+    free(buf);
     return EXIT_SUCCESS;
 }
