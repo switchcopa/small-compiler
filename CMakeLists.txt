@@ -4,17 +4,18 @@ project(small-compiler VERSION 1.0 LANGUAGES C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(SOURCES
-    lexer.c
-    lexer_table.c
-    main.c
-    parser.c
-    semantics.c
-    symbol.c
-    types.c
+    src/lexer.c
+    src/lexer_table.c
+    src/main.c
+    src/parser.c
+    src/semantics.c
+    src/symbol.c
+    src/types.c
 )
 
 add_executable(small-compiler ${SOURCES})
