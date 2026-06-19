@@ -17,18 +17,25 @@ small-compiler documents my journey in systems programming, this includes my com
 
 To make this and run the code, you need:
 * a Linux x86-64 environment
-* gcc/clang compiler for C (there are extensions that only exist in these compilers)
+* gcc/clang compiler for C
 * **CMake** 3.10+
 
 ### Building the compiler
 
 ```bash
-# Create and enter a build directory
-cmake -B build
-cd build
+# Create a build directory
+mkdir build
 
-# compile the project
-make
+# If you want to hunt bugs:
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+
+# Or if you want the regular one:
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+
+# Run
+./build/small-compiler test.c
 ```
 
 ### Running an Example
@@ -36,7 +43,7 @@ Create a test file named file.c containing nothing more than what the features p
 
 Run the compiler:
 ```bash
-./small-program test.c > out.s
+./build/small-program test.c > out.s
 ```
 
 ## Syntax specification
