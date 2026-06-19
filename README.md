@@ -43,7 +43,7 @@ Create a test file named file.c containing nothing more than what the features p
 
 Run the compiler:
 ```bash
-./build/small-program test.c > out.s
+./build/small-program test.c
 ```
 
 ## Syntax specification
