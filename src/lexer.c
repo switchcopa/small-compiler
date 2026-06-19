@@ -1,5 +1,17 @@
 /* lexer.c */
 
+/* 
+ * Design flaw:
+ * functions like isalpha(), isalnum()
+ * we are forced to cast to an unsigned
+ * char, and there are other problems
+ * such that they can return true on some
+ * characters that we don't want.
+ *
+ * solution: write custom functions that 
+ * checks the range of characters
+ */
+
 #include "lexer.h"
 #include "types.h"
 
@@ -15,7 +27,7 @@ struct kwentry kwtable[] =
 };
 size_t nkw = sizeof(kwtable)/sizeof(kwtable[0]);
 
-inline static void
+static inline void
 emit(struct token t)
 {
     if (ntokens < MAX_TOKENS)
@@ -27,14 +39,14 @@ emit(struct token t)
     }
 }
 
-inline static unsigned char
+static inline unsigned char
 peek(struct lexer *lexer)
 {
     return (unsigned char)*lexer->p;
 }
 
 /* should add column modifications later*/
-inline static unsigned char
+static inline unsigned char
 next(struct lexer *lexer)
 {
     return (peek(lexer)) ? (unsigned char)*lexer->p++ : '\0';
@@ -75,7 +87,7 @@ recover(struct lexer *lexer)
 }
 */
 
-inline static void
+static inline void
 copy_data(struct lexer *lexer, struct token *t)
 {
     t->line = lexer->line;
