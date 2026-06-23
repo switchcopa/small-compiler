@@ -32,10 +32,10 @@ is_ident_body(unsigned char c)
 }
 
 static inline void
-emit(struct token t)
+emit(struct token *t)
 {
     if (ntokens < MAX_TOKENS)
-        tokens[ntokens++] = t;
+        tokens[ntokens++] = *t;
     else
     {
         fprintf(stderr, "too many tokens\n");
@@ -131,10 +131,9 @@ lex_symbol(struct lexer *lexer)
     if (t.kind == UNKNOWN)
         t.err = lexer->err = 1;
     copy_data(lexer, &t);
-    emit(t);
+    emit(&t);
     (void)next(lexer);
 }
-
 static void
 lex_ident(struct lexer *lexer)
 {
@@ -158,7 +157,7 @@ lex_ident(struct lexer *lexer)
     t.err = 0;
     t.kind = ( (p = get_kwentry(t.ident)) ) 
                 ? p->kind : IDENT;
-    emit(t);
+    emit(&t);
 }
 
 static void
@@ -183,7 +182,7 @@ lex_num(struct lexer *lexer)
     t.i = atoi(num);
     t.err = 0;
     t.kind = INT;
-    emit(t);
+    emit(&t);
 }
 
 struct lexer
