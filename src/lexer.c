@@ -28,7 +28,8 @@ is_ident_start(unsigned char c)
 static inline bool
 is_ident_body(unsigned char c)
 {
-    return is_ident_start(c) || isdigit(c);
+    return is_ident_start(c) ||
+           (c >= '0' && c <= '9');
 }
 
 static inline void
@@ -134,6 +135,7 @@ lex_symbol(struct lexer *lexer)
     emit(&t);
     (void)next(lexer);
 }
+
 static void
 lex_ident(struct lexer *lexer)
 {
@@ -194,7 +196,7 @@ lex(const unsigned char *src)
     lexer.line = lexer.column = 1;
     lexer.err  = 0;
 
-    unsigned char c;    
+    unsigned char c;
     while ( (c = peek(&lexer)) )
     {
         if (is_ident_start(c)) lex_ident(&lexer);
@@ -203,6 +205,6 @@ lex(const unsigned char *src)
         else lex_symbol(&lexer);
     }
 
-    lex_symbol(&lexer);    
+    lex_symbol(&lexer);
     return lexer;
 }
