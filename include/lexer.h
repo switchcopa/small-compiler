@@ -29,7 +29,7 @@ enum toktype
 };
 
 struct token
-{   
+{
     union
     {
         char ident[MAX_IDENT + 1];
@@ -58,7 +58,7 @@ struct lexer
     int                  err;
 };
 
-struct lexer lex(const unsigned char *src); // questionable?
+struct lexer lex(const unsigned char *src);
 
 extern struct token tokens[];
 extern size_t ntokens;
