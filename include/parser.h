@@ -23,7 +23,7 @@ enum node_type
 
 struct astnode
 {
-	enum node_type;
+	enum node_type type;
 	union
 	{
 		int i;
