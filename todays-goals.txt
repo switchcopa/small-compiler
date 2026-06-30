@@ -1,4 +1,5 @@
 
 
-todays goals: test the lexer, fix
-some compiler complains, etc...
+tomorrow's goals: (yea i know it contradicts the file name :D)
+write parse_ functions like primary bla bla, and then
+fix compiler complains, and test if it works
