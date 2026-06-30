@@ -3,22 +3,20 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-// #define 
+#define MAX_NODES 2048
 
 #include "lexer.h"
 
 enum node_type
 {
-	// Literals
 	NODE_INT_LITERAL = 0,
 	NODE_IDENT,
-
-	// BINARY MATH OPERATORS
 	NODE_ASSIGN,
 	NODE_ADD,
 	NODE_SUB,
 	NODE_MUL,
 	NODE_DIV,
+    NODE_DECL
 };
 
 struct astnode
@@ -28,11 +26,18 @@ struct astnode
 	{
 		int i;
 		char *ident;
+
 		struct
 		{
 			struct astnode *left;
 			struct astnode *right;
 		} binary;
+
+        struct
+        {
+            char *name;
+            struct astnode *init;
+        } decl;
 	} as;
 };
 
@@ -43,7 +48,14 @@ struct parser
 	int           err;
 };
 
-extern struct astnode *tree;
+enum precedence
+{
+    PREC_NONE = 0,
+    PREC_ASSIGN,
+    PREC_TERM,
+    PREC_FACTOR,
+    PREC_PRIMARY
+};
 
 void parse_program(struct parser *p);
 
