@@ -44,7 +44,8 @@ struct astnode
 struct parser
 {
 	struct token* tokens;
-	struct token* p;
+    size_t        ntokens;
+    size_t        pos;
 	int           err;
 };
 

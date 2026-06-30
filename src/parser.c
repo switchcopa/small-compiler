@@ -13,13 +13,13 @@ static struct astnode *astnode_arr[MAX_NODES];
 static size_t nnodes;
 
 struct astnode *parse_primary(struct parser *p);
-struct astnode *parse_binary(struct parser *p);
-struct astnode *parse_assignment(struct parser *p);
+struct astnode *parse_binary(struct parser *p, struct astnode *left);
+struct astnode *parse_assignment(struct parser *p, struct astnode *left);
 
 struct parser_rule
 {
     struct astnode* (*nud)(struct parser *);
-    struct astnode* (*led)(struct parser *, struct astnode *left);
+    struct astnode* (*led)(struct parser *, struct astnode *);
     enum precedence precedence;
 };
 
@@ -65,4 +65,24 @@ make_astnode(enum node_type type)
     else
         astnode_arr[nnodes++] = np;
     return np;
+}
+
+static inline struct token
+peek(struct parser *parser)
+{
+    return parser->tokens[parser->pos];
+}
+
+static inline struct token
+advance(struct parser *parser)
+{
+    if (parser->pos >= parser->ntokens)
+        parser_report_error("can't advance to next token");
+    return parser->tokens[parser->pos++];
+}
+
+static inline bool
+match(struct parser *parser, enum toktype type)
+{
+    return (peek(parser).kind == type);
 }
