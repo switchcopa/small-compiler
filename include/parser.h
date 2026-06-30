@@ -38,11 +38,13 @@ struct astnode
 
 struct parser
 {
-	struct token *tokens;
-	struct token *p;
-	int err;
+	struct token* tokens;
+	struct token* p;
+	int           err;
 };
 
 extern struct astnode *tree;
+
+void parse_program(struct parser *p);
 
 #endif
