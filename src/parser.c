@@ -39,17 +39,11 @@ static struct parser_rule rules[] =
 };
 
 static void
-free_astnodes(void)
-{
-    for (size_t i = 0; i < nnodes; i++)
-        free(astnode_arr[i]);
-}
-
-static void
-parser_report_error(char *msg)
+parser_panic(char *msg)
 {
     fprintf(stderr, "%s\n", msg);
-    free_astnodes();
+    for (size_t i = 0; i < nnodes; i++)
+        free(astnode_arr[i]);
     exit(EXIT_FAILURE);
 }
 
@@ -57,11 +51,11 @@ static struct astnode*
 make_astnode(enum node_type type)
 {
     struct astnode *np = malloc(sizeof(astnode));
-    if (!np) parser_report_error("fatal! out of memory");
+    if (!np) parser_panic("fatal! out of memory");
     np->type = type;
 
     if (nnodes >= MAX_NODES)
-        parser_report_error("too many nodes");
+        parser_panic("too many nodes");
     else
         astnode_arr[nnodes++] = np;
     return np;
@@ -77,7 +71,7 @@ static inline struct token
 advance(struct parser *parser)
 {
     if (parser->pos >= parser->ntokens)
-        parser_report_error("can't advance to next token");
+        parser_panic("can't advance to next token");
     return parser->tokens[parser->pos++];
 }
 
@@ -85,4 +79,19 @@ static inline bool
 match(struct parser *parser, enum toktype type)
 {
     return (peek(parser).kind == type);
+}
+
+static void
+recover(struct parser *parser)
+{
+    while (peek(parser).type != SEMICOLON &&
+            peek(parser).type != END)
+        (void)advance(parser);
+}
+
+static void
+parser_report_error(char *msg)
+{
+    fprintf(stderr, "%s\n", msg);
+    recover(parser);
 }
