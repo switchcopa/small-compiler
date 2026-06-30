@@ -58,6 +58,7 @@ enum precedence
     PREC_PRIMARY
 };
 
+struct astnode *parse_expression(struct parser *, enum precedence);
 void parse_program(struct parser *p);
 
 #endif

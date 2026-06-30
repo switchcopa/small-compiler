@@ -47,7 +47,7 @@ parser_panic(char *msg)
     exit(EXIT_FAILURE);
 }
 
-static struct astnode*
+struct astnode*
 make_astnode(enum node_type type)
 {
     struct astnode *np = malloc(sizeof(astnode));
@@ -90,8 +90,38 @@ recover(struct parser *parser)
 }
 
 static void
-parser_report_error(char *msg)
+parser_report_error(struct parser *parser, char *msg)
 {
     fprintf(stderr, "%s\n", msg);
+    parser->err = 1;
     recover(parser);
+}
+
+struct astnode *
+parse_expression(struct parser *parser, enum precedence binding_power)
+{
+    struct token tok = advance(parser);
+    struct parser_rule handler = rules[tok.kind];
+    struct astnode *left;
+
+    if (handler.nud == NULL)
+    {
+        parser_report_error("%i: %i: Syntax error: expected expression",
+                            tok.line, tok.column);
+        return NULL;
+    }
+
+    left = handler.nud(parser);
+    struct token next = peek(parser);
+    enum precedence prcd = rules[next.kind].precedence;
+    while (binding_power < prcd && rules[next.kind].led)
+    {
+        next = advance(parser);
+        left = rules[next.kind].led(parser, left);
+
+        next = peek(parser);
+        prcd = rules[next.kind].precedence;
+    }
+
+    return left;
 }
