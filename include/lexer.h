@@ -11,7 +11,6 @@
         (TAB_WIDTH - (((c) - 1) % TAB_WIDTH))
 
 #include <stddef.h>
-#include "types.h"
 
 enum toktype
 {

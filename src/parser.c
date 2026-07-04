@@ -1,13 +1,13 @@
 /* parser.c */
 
-
 #include "lexer.h"
 #include "parser.h"
-#include "types.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <stdbool.h>
+#include <stdarg.h>
 
 static struct astnode *astnode_arr[MAX_NODES];
 static size_t nnodes;
@@ -50,7 +50,7 @@ parser_panic(char *msg)
 struct astnode*
 make_astnode(enum node_type type)
 {
-    struct astnode *np = malloc(sizeof(astnode));
+    struct astnode *np = malloc(sizeof(struct astnode));
     if (!np) parser_panic("fatal! out of memory");
     np->type = type;
 
@@ -84,15 +84,21 @@ match(struct parser *parser, enum toktype type)
 static void
 recover(struct parser *parser)
 {
-    while (peek(parser).type != SEMICOLON &&
-            peek(parser).type != END)
+    while (peek(parser).kind != SEMICOLON &&
+            peek(parser).kind != END)
         (void)advance(parser);
 }
 
 static void
-parser_report_error(struct parser *parser, char *msg)
+parser_report_error(struct parser *parser, char *msg, ...)
 {
-    fprintf(stderr, "%s\n", msg);
+    va_list args;
+
+    va_start(args, msg);
+    fprintf(stderr, "small-compiler: ");
+    vfprintf(stderr, msg, args);
+    fprintf(stderr, "\n");
+
     parser->err = 1;
     recover(parser);
 }
@@ -106,7 +112,7 @@ parse_expression(struct parser *parser, enum precedence binding_power)
 
     if (handler.nud == NULL)
     {
-        parser_report_error("%i: %i: Syntax error: expected expression",
+        parser_report_error(parser, "%i: %i: Syntax error: expected expression",
                             tok.line, tok.column);
         return NULL;
     }

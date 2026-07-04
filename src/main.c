@@ -9,7 +9,6 @@
 #include <stdarg.h>
 
 #include "lexer.h"
-#include "types.h"
 
 #define MAX_LINE 256
 
@@ -65,9 +64,8 @@ int main(int argc, char **argv)
     (void)lex(buf);
     for (size_t i = 0; i < ntokens; i++)
     {
-        struct token t = tokens[i];
-        char *p = str_toktypes[(int)t.kind];
-        fprintf(stdout, "%i:%i %s\n", t.line, t.column, p);
+        //struct token t = tokens[i];
+        // ebat syka
     }
 
     free(buf);
