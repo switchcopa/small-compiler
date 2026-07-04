@@ -1,13 +1,9 @@
 /* parser.c */
 
+#include "common.h"
+
 #include "lexer.h"
 #include "parser.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <stdbool.h>
-#include <stdarg.h>
 
 static struct astnode *astnode_arr[MAX_NODES];
 static size_t nnodes;
@@ -68,6 +64,15 @@ peek(struct parser *parser)
 }
 
 static inline struct token
+peek_prev(struct parser *parser)
+{
+    if (parser->pos > 0U)
+        return parser->tokens[parser->pos - 1];
+    else
+        parser_
+}
+
+static inline struct token
 advance(struct parser *parser)
 {
     if (parser->pos >= parser->ntokens)
@@ -98,6 +103,7 @@ parser_report_error(struct parser *parser, char *msg, ...)
     fprintf(stderr, "small-compiler: ");
     vfprintf(stderr, msg, args);
     fprintf(stderr, "\n");
+    va_end(args);
 
     parser->err = 1;
     recover(parser);

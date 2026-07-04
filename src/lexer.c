@@ -1,12 +1,8 @@
 /* lexer.c */
 
-#include "lexer.h"
+#include "common.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include <string.h>
+#include "lexer.h"
 
 struct token tokens[MAX_TOKENS];
 size_t ntokens;

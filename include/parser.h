@@ -3,7 +3,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#define MAX_NODES 2048
+#include "common.h"
 
 #include "lexer.h"
 

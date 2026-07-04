@@ -3,14 +3,7 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-#define MAX_IDENT       32
-#define MAX_TOKENS      4096
-#define TAB_WIDTH       4
-
-#define COLUMN_TAB_INCREMENT(c) \
-        (TAB_WIDTH - (((c) - 1) % TAB_WIDTH))
-
-#include <stddef.h>
+#include "common.h"
 
 enum toktype
 {
