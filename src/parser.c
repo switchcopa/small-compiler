@@ -12,6 +12,8 @@ struct astnode *parse_primary(struct parser *p);
 struct astnode *parse_binary(struct parser *p, struct astnode *left);
 struct astnode *parse_assignment(struct parser *p, struct astnode *left);
 
+static void parser_report_error(struct parser *parser, char *msg, ...);
+
 struct parser_rule
 {
     struct astnode* (*nud)(struct parser *);
@@ -34,26 +36,14 @@ static struct parser_rule rules[] =
     [UNKNOWN]       = { NULL,           NULL,             PREC_NONE },
 };
 
-static void
-parser_panic(char *msg)
-{
-    fprintf(stderr, "%s\n", msg);
-    for (size_t i = 0; i < nnodes; i++)
-        free(astnode_arr[i]);
-    exit(EXIT_FAILURE);
-}
-
 struct astnode*
 make_astnode(enum node_type type)
 {
     struct astnode *np = malloc(sizeof(struct astnode));
-    if (!np) parser_panic("fatal! out of memory");
+    COMPILER_ASSERT(np, "fatal! out of memory");
     np->type = type;
-
-    if (nnodes >= MAX_NODES)
-        parser_panic("too many nodes");
-    else
-        astnode_arr[nnodes++] = np;
+    COMPILER_ASSERT(nnodes >= MAX_NODES, "too many nodes");
+    astnode_arr[nnodes++] = np;
     return np;
 }
 
@@ -66,17 +56,14 @@ peek(struct parser *parser)
 static inline struct token
 peek_prev(struct parser *parser)
 {
-    if (parser->pos > 0U)
-        return parser->tokens[parser->pos - 1];
-    else
-        parser_
+    COMPILER_ASSERT(parser->pos > 0U, "asking for nonexistent previous token");
+    return parser->tokens[parser->pos - 1];
 }
 
 static inline struct token
 advance(struct parser *parser)
 {
-    if (parser->pos >= parser->ntokens)
-        parser_panic("can't advance to next token");
+    COMPILER_ASSERT(parser->pos >= parser->ntokens, "can't advance");
     return parser->tokens[parser->pos++];
 }
 
@@ -107,6 +94,85 @@ parser_report_error(struct parser *parser, char *msg, ...)
 
     parser->err = 1;
     recover(parser);
+}
+
+struct astnode *
+parse_primary(struct parser *parser)
+{
+    struct token tok = peek_prev(parser);
+    struct astnode *node = NULL;
+    switch (tok.kind)
+    {
+        case INT:
+            node = make_astnode(NODE_INT_LITERAL);
+            node->as.i = tok.i;
+            break;
+        case IDENT:
+            node = make_astnode(NODE_IDENT);
+            node->as.ident = tok.ident;
+            break;
+        default:
+            COMPILER_ASSERT(0, "unexpected token type in parser");
+    }
+
+    return node;
+}
+
+struct astnode *
+parse_binary(struct parser *parser, struct astnode *left)
+{
+    struct token tok = peek_prev(parser);
+    COMPILER_ASSERT(tok.kind == PLUS   ||
+                    tok.kind == MINUS  ||
+                    tok.kind == STAR   ||
+                    tok.kind == FSLASH,
+                    "unexpected token type in parser");
+    enum precedence prcd  = rules[tok.kind].precedence;
+    struct astnode *right = parse_expression(parser, prcd);
+    struct astnode *node = NULL;
+
+    switch (tok.kind)
+    {
+        case PLUS:
+            node = make_astnode(NODE_ADD);
+            break;
+        case MINUS:
+            node = make_astnode(NODE_SUB);
+            break;
+        case STAR:
+            node = make_astnode(NODE_MUL);
+            break;
+        case FSLASH:
+            node = make_astnode(NODE_DIV);
+            break;
+        default:
+            COMPILER_ASSERT(0, "unexpected token type in parser");
+    }
+
+    node->as.binary.left  = left;
+    node->as.binary.right = right;
+    return node;
+}
+
+struct astnode *
+parse_assignment(struct parser *parser, struct astnode *left)
+{
+    if (left->type != NODE_IDENT)
+    {
+        parser_report_error(parser, "left value required as left operand of assignment");
+        return NULL;
+    }
+
+    // we allow the nesting of subsequent assignments (a = b = 67) to the right
+    // by lowering the precedence to PREC_ASSIGN - 1
+    struct astnode *right = parse_expression(parser, PREC_ASSIGN - 1);
+    if (right == NULL)
+        return NULL;
+    struct astnode *node = make_astnode(NODE_ASSIGN);
+
+    node->as.binary.left  = left;
+    node->as.binary.right = right;
+    return node;
 }
 
 struct astnode *
