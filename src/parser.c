@@ -42,7 +42,7 @@ make_astnode(enum node_type type)
     struct astnode *np = malloc(sizeof(struct astnode));
     COMPILER_ASSERT(np, "fatal! out of memory");
     np->type = type;
-    COMPILER_ASSERT(nnodes >= MAX_NODES, "too many nodes");
+    COMPILER_ASSERT(nnodes < MAX_NODES, "too many nodes");
     astnode_arr[nnodes++] = np;
     return np;
 }
@@ -63,7 +63,7 @@ peek_prev(struct parser *parser)
 static inline struct token
 advance(struct parser *parser)
 {
-    COMPILER_ASSERT(parser->pos >= parser->ntokens, "can't advance");
+    COMPILER_ASSERT(parser->pos < parser->ntokens, "can't advance");
     return parser->tokens[parser->pos++];
 }
 
@@ -129,7 +129,7 @@ parse_binary(struct parser *parser, struct astnode *left)
                     "unexpected token type in parser");
     enum precedence prcd  = rules[tok.kind].precedence;
     struct astnode *right = parse_expression(parser, prcd);
-    struct astnode *node = NULL;
+    struct astnode *node  = NULL;
 
     switch (tok.kind)
     {
