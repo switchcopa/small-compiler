@@ -4,7 +4,8 @@ small-compiler is a small compiler made in the C language, to compile basic C co
 
 ## Features
 
-* A lexer to look at the source code and produce tokens (testing)
+* A lexer to look at the source code and produce tokens
+* Builds an AST in the parser (WIP...)
 * Nothing more yet...
 
 ## Purpose
@@ -52,8 +53,7 @@ Currently, the project only has a lexer, more features will be added soon.
 
 ## 'To-do's
 
-* Finish the lexer (testing).
-* Add the parser.
+* Finish implementing the parser.
 * Generate the assembly.
 
 The language semantics and symbol table will be added after these work nicely.
