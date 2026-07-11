@@ -8,6 +8,8 @@
 static struct astnode *astnode_arr[MAX_NODES];
 static size_t nnodes;
 
+static signed int stack_offset;
+
 struct astnode *parse_primary(struct parser *p);
 struct astnode *parse_binary(struct parser *p, struct astnode *left);
 struct astnode *parse_assignment(struct parser *p, struct astnode *left);
@@ -205,4 +207,44 @@ parse_expression(struct parser *parser, enum precedence binding_power)
     }
 
     return left;
+}
+
+struct astnode *
+parse_declaration(struct parser *parser)
+{
+    if (!match(parser, KWORD_INT)) return NULL;
+    (void)advance(parser);
+
+    if (!match(parser, IDENT))
+    {
+        parser_report_error(parser, "expected variable name after 'int'");
+        return NULL;
+    }
+
+    struct token idtok = advance(parser);
+    struct astnode *init_expr = NULL;
+    struct astnode *np = NULL;
+
+    if (match(parser, EQUALS))
+    {
+        (void)advance(parser);
+        init_expr = parse_expression(parser, PREC_ASSIGN - 1);
+        if (init_expr == NULL)
+            return NULL;
+    }
+
+    if (!match(parser, SEMICOLON))
+    {
+        parser_report_error(parser, "expect ';' after variable declaration");
+        return NULL;
+    }
+
+    (void)advance(parser);
+    stack_offset -= 4;
+
+    np = make_astnode(NODE_ASSIGN);
+    np->as.decl.name   = idtok.ident;
+    np->as.decl.offset = stack_offset;
+    np->as.decl.init   = init_expr;
+    return np;
 }
