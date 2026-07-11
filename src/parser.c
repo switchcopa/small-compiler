@@ -76,8 +76,11 @@ match(struct parser *parser, enum toktype type)
 static void
 recover(struct parser *parser)
 {
-    while (peek(parser).kind != SEMICOLON &&
-            peek(parser).kind != END)
+    while (!match(parser, SEMICOLON) &&
+           !match(parser, END))
+        (void)advance(parser);
+
+    if (match(parser, SEMICOLON))
         (void)advance(parser);
 }
 

@@ -36,6 +36,7 @@ struct astnode
         struct
         {
             char *name;
+            signed int offset;
             struct astnode *init;
         } decl;
 	} as;
