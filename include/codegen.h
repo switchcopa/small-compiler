@@ -3,6 +3,24 @@
 #ifndef CODEGEN_H
 #define CODEGEN_H
 
+#include "common.h"
 
+#define SYMBOL_TABLE_ENTRIES 2048
+
+struct sym
+{
+    char *name;
+    signed int stack_offset;
+};
+
+struct symtable
+{
+    struct sym entries[SYMBOL_TABLE_ENTRIES];
+    size_t nentries;
+    size_t curr_stack_offset;
+};
+
+int lookup_sym(struct symtable *, char *);
+bool insert_sym(struct symtable *, char *, signed int);
 
 #endif
