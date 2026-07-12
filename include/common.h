@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <sys/types.h>
 
 /* global limits and config */
 #define MAX_IDENT           32
@@ -21,6 +22,9 @@
 /* global util macros */
 #define COLUMN_TAB_INCREMENT(c) \
         (TAB_WIDTH - (((c) - 1) % TAB_WIDTH))
+
+/* global util functions */
+bool equal(const char *, const char *);
 
 /* internal compiler assertions */
 void compiler_internal_abort(const char *file, int line, const char *fmt, ...);

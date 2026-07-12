@@ -7,6 +7,8 @@
 
 #include "lexer.h"
 
+#define MAX_NODES 5120
+
 enum node_type
 {
 	NODE_INT_LITERAL = 0,
@@ -36,7 +38,6 @@ struct astnode
         struct
         {
             char *name;
-            signed int offset;
             struct astnode *init;
         } decl;
 	} as;
@@ -50,6 +51,12 @@ struct parser
 	int           err;
 };
 
+struct program
+{
+    struct astnode *nodes[MAX_NODES];
+    size_t nnodes;
+};
+
 enum precedence
 {
     PREC_NONE = 0,
@@ -59,7 +66,6 @@ enum precedence
     PREC_PRIMARY
 };
 
-struct astnode *parse_expression(struct parser *, enum precedence);
-void parse_program(struct parser *p);
+struct program parse_program(struct parser *p);
 
 #endif

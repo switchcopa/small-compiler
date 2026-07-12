@@ -8,11 +8,11 @@
 static struct astnode *astnode_arr[MAX_NODES];
 static size_t nnodes;
 
-static signed int stack_offset;
-
 struct astnode *parse_primary(struct parser *p);
 struct astnode *parse_binary(struct parser *p, struct astnode *left);
 struct astnode *parse_assignment(struct parser *p, struct astnode *left);
+struct astnode *parse_declaration(struct parser *parser);
+struct astnode *parse_expression(struct parser *parser, enum precedence binding_power);
 
 static void parser_report_error(struct parser *parser, char *msg, ...);
 
@@ -47,6 +47,19 @@ make_astnode(enum node_type type)
     COMPILER_ASSERT(nnodes < MAX_NODES, "too many nodes");
     astnode_arr[nnodes++] = np;
     return np;
+}
+
+static inline bool
+is_type_specifier(enum toktype kind)
+{
+    switch (kind)
+    {
+        case KWORD_INT:
+        /// ....
+            return true;
+        default:
+            return false;
+    }
 }
 
 static inline struct token
@@ -87,18 +100,40 @@ recover(struct parser *parser)
 }
 
 static void
-parser_report_error(struct parser *parser, char *msg, ...)
+parser_vreport_error(struct parser *parser, char *msg, va_list args) 
 {
-    va_list args;
-
-    va_start(args, msg);
     fprintf(stderr, "small-compiler: ");
     vfprintf(stderr, msg, args);
     fprintf(stderr, "\n");
-    va_end(args);
 
     parser->err = 1;
     recover(parser);
+}
+
+static void
+parser_report_error(struct parser *parser, char *msg, ...) 
+{
+    va_list args;
+    va_start(args, msg);
+    parser_vreport_error(parser, msg, args);
+    va_end(args);
+}
+
+static bool
+expect(struct parser *parser, enum toktype kind, char *msg, ...)
+{
+    if (!match(parser, kind))
+    {
+        va_list args;
+        va_start(args, msg);
+        parser_vreport_error(parser, msg, args);
+        va_end(args);
+        
+        return false;
+    }
+
+    (void)advance(parser);
+    return true;
 }
 
 struct astnode *
@@ -212,16 +247,12 @@ parse_expression(struct parser *parser, enum precedence binding_power)
 struct astnode *
 parse_declaration(struct parser *parser)
 {
-    if (!match(parser, KWORD_INT)) return NULL;
-    (void)advance(parser);
-
-    if (!match(parser, IDENT))
-    {
-        parser_report_error(parser, "expected variable name after 'int'");
+    if (!expect(parser, KWORD_INT, "expected type specifier for declaration"))
         return NULL;
-    }
 
-    struct token idtok = advance(parser);
+    if (!expect(parser, IDENT, "expected variable identifier after type specifier"))
+        return NULL;
+    struct token idtok = peek_prev(parser);
     struct astnode *init_expr = NULL;
     struct astnode *np = NULL;
 
@@ -233,18 +264,31 @@ parse_declaration(struct parser *parser)
             return NULL;
     }
 
-    if (!match(parser, SEMICOLON))
-    {
-        parser_report_error(parser, "expect ';' after variable declaration");
+    if (!expect(parser, SEMICOLON, "expected ';' after statement"))
         return NULL;
-    }
 
-    (void)advance(parser);
-    stack_offset -= 4;
-
-    np = make_astnode(NODE_ASSIGN);
+    np = make_astnode(NODE_DECL);
     np->as.decl.name   = idtok.ident;
-    np->as.decl.offset = stack_offset;
     np->as.decl.init   = init_expr;
     return np;
+}
+
+struct astnode *
+parse_statement(struct parser *parser)
+{
+    if (is_type_specifier(peek(parser).kind))
+        return parse_declaration(parser);
+    else
+    {
+        struct astnode *expr = parse_expression(parser, PREC_ASSIGN);
+        if (!expect(parser, SEMICOLON, "expected ';' after statement"))
+            return NULL;
+        return expr;
+    }
+}
+
+struct program
+parse_program(struct parser *parser)
+{
+    struct program program = {};
 }

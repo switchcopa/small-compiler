@@ -17,9 +17,10 @@ struct symtable
 {
     struct sym entries[SYMBOL_TABLE_ENTRIES];
     size_t nentries;
-    size_t curr_stack_offset;
+    ssize_t curr_stack_offset;
 };
 
+struct symtable *make_symtab(void);
 int lookup_sym(struct symtable *, char *);
 bool insert_sym(struct symtable *, char *, signed int);
 

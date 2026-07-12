@@ -16,3 +16,9 @@ compiler_internal_abort(const char *file, int line, const char *fmt, ...)
 
     exit(EXIT_FAILURE);
 }
+
+bool
+equal(const char *s1, const char *s2)
+{
+    return (strcmp(s1, s2) == 0);
+}
