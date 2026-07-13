@@ -22,3 +22,12 @@ equal(const char *s1, const char *s2)
 {
     return (strcmp(s1, s2) == 0);
 }
+
+char *
+strdup(const char *s)
+{
+    char *p = malloc(strlen(s) + 1);
+    COMPILER_ASSERT(p, "fatal! out of memory");
+    strcpy(p, s);
+    return p;
+}

@@ -34,17 +34,16 @@ lookup_sym(struct symtable *symtab, char *name)
 bool
 insert_sym(struct symtable *symtab, char *name, signed int stack_offset)
 {
-    size_t i;
-    for (i = 0; i < symtab->nentries; i++)
-        if (symtab->entries[i].name == NULL)
-        {
-            symtab->entries[i].name         = name;
-            symtab->entries[i].stack_offset = stack_offset;
-            symtab->curr_stack_offset      -= stack_offset;
-            symtab->nentries++;
-            return true;
-        }
-    return false;
+    if (symtab->nentries >= SYMBOL_TABLE_ENTRIES)
+        return false;
+
+    size_t i = symtab->nentries;
+    symtab->entries[i].name         = name;
+    symtab->entries[i].stack_offset = symtab->curr_stack_offset - stack_offset;
+    symtab->curr_stack_offset      -= stack_offset;
+    symtab->nentries++;
+
+    return true;
 }
 
 static bool

@@ -150,7 +150,7 @@ parse_primary(struct parser *parser)
             break;
         case IDENT:
             node = make_astnode(NODE_IDENT);
-            node->as.ident = tok.ident;
+            node->as.ident = strdup(tok.ident);
             break;
         default:
             COMPILER_ASSERT(0, "unexpected token type in parser");
@@ -269,7 +269,7 @@ parse_declaration(struct parser *parser)
         return NULL;
 
     np = make_astnode(NODE_DECL);
-    np->as.decl.name   = idtok.ident;
+    np->as.decl.name   = strdup(idtok.ident);
     np->as.decl.init   = init_expr;
     return np;
 }

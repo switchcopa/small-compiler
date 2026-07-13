@@ -7,8 +7,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(SOURCES
     src/lexer.c
+    src/parser.c
+    src/codegen.c
+    src/common.c
     src/main.c
-    src/types.c
 )
 
 add_executable(small-compiler ${SOURCES})

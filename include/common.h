@@ -24,7 +24,8 @@
         (TAB_WIDTH - (((c) - 1) % TAB_WIDTH))
 
 /* global util functions */
-bool equal(const char *, const char *);
+bool  equal(const char *, const char *);
+char *strdup(const char *);
 
 /* internal compiler assertions */
 void compiler_internal_abort(const char *file, int line, const char *fmt, ...);

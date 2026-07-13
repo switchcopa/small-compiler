@@ -9,6 +9,8 @@
 #include <stdarg.h>
 
 #include "lexer.h"
+#include "parser.h"
+#include "codegen.h"
 
 #define MAX_LINE 256
 
@@ -61,13 +63,37 @@ int main(int argc, char **argv)
     }
 
     unsigned char *buf = readfile(argv[1]);
-    (void)lex(buf);
-    for (size_t i = 0; i < ntokens; i++)
+    struct lexer l = lex(buf);
+    if (l.err)
     {
-        //struct token t = tokens[i];
-        // ebat syka
+        fprintf(stderr, "lexical errors encountered. aborting\n");
+        free(buf);
+        return EXIT_FAILURE;
     }
 
+    struct parser p;
+    p.tokens = tokens;
+    p.ntokens = ntokens;
+    p.pos = p.err = 0;
+
+    struct program program = parse_program(&p);
+    if (p.err)
+    {
+        fprintf(stderr, "parsing errors occurred. aborting\n");
+        free(buf);
+        return EXIT_FAILURE;
+    }
+
+    // 5. Semantic Analysis (Our symbol table and variable check!)
+    init_symtab();
+    if (!analyze_program(&program))
+    {
+        fprintf(stderr, "Semantic errors encountered. Aborting code generation.\n");
+        free(buf);
+        return EXIT_FAILURE;
+    }
+
+    printf("\n\033[32m\033[1mSuccess! program parsed and analyzed nicely :D!\033[0m\n\n");
     free(buf);
     return EXIT_SUCCESS;
 }
