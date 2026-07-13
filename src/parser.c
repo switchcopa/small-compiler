@@ -13,6 +13,7 @@ struct astnode *parse_binary(struct parser *p, struct astnode *left);
 struct astnode *parse_assignment(struct parser *p, struct astnode *left);
 struct astnode *parse_declaration(struct parser *parser);
 struct astnode *parse_expression(struct parser *parser, enum precedence binding_power);
+struct astnode *parse_statement(struct parser *parser);
 
 static void parser_vreport_error(struct parser *parser, char *msg, va_list args); 
 static void parser_report_error(struct parser *parser, char *msg, ...);
@@ -231,6 +232,8 @@ parse_expression(struct parser *parser, enum precedence binding_power)
     }
 
     left = handler.nud(parser);
+    if (!left) return NULL;
+
     struct token next = peek(parser);
     enum precedence prcd = rules[next.kind].precedence;
     while (binding_power < prcd && rules[next.kind].led)
@@ -281,7 +284,7 @@ parse_statement(struct parser *parser)
         return parse_declaration(parser);
     else
     {
-        struct astnode *expr = parse_expression(parser, PREC_ASSIGN);
+        struct astnode *expr = parse_expression(parser, PREC_NONE);
         if (!expect(parser, SEMICOLON, "expected ';' after statement"))
             return NULL;
         return expr;

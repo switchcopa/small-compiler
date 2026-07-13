@@ -63,6 +63,7 @@ check_expression(struct symtable *symtab, struct astnode *node)
                         node->as.ident);
                 return false;
             }
+            return true;
         case NODE_ADD:
         case NODE_SUB:
         case NODE_MUL:

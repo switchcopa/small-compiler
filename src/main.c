@@ -14,6 +14,20 @@
 
 #define MAX_LINE 256
 
+static const char *token_names[] = {
+    [KWORD_INT] = "KWORD_INT",
+    [IDENT]     = "IDENT",
+    [INT]       = "INT",
+    [EQUALS]    = "EQUALS",
+    [PLUS]      = "PLUS",
+    [MINUS]     = "MINUS",
+    [STAR]      = "STAR",
+    [FSLASH]    = "FSLASH",
+    [SEMICOLON] = "SEMICOLON",
+    [END]       = "END",
+    [UNKNOWN]   = "UNKNOWN"
+};
+
 static void error(char *fmt, ...)
 {
     va_list args;
@@ -71,6 +85,9 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    for (size_t i = 0; i < ntokens; i++)
+        printf("%s ", token_names[(int)tokens[i].kind]);
+    printf("\n");
     struct parser p;
     p.tokens = tokens;
     p.ntokens = ntokens;

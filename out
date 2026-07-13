@@ -1,0 +1,1011 @@
+
+/* test.c */
+int x = 5 + 2;
+x = x + 2;
+int y = 10 + 3;
+z = x + y;
+/* codegen.c */
+
+#include "common.h"
+
+#include "codegen.h"
+
+struct symtable symtable;
+
+struct symtable *
+init_symtab(void)
+{
+    size_t i;
+    for (i = 0; i < SYMBOL_TABLE_ENTRIES; i++)
+    {
+        symtable.entries[i].name         = NULL;
+        symtable.entries[i].stack_offset = 0;
+    }
+
+    symtable.nentries          = 0;
+    symtable.curr_stack_offset = 0;
+    return &symtable;
+}
+
+int
+lookup_sym(struct symtable *symtab, char *name)
+{
+    size_t i;
+    for (i = 0; i < symtab->nentries; i++)
+        if (equal(name, symtab->entries[i].name))
+            return i;
+    return -1;
+}
+
+bool
+insert_sym(struct symtable *symtab, char *name, signed int stack_offset)
+{
+    if (symtab->nentries >= SYMBOL_TABLE_ENTRIES)
+        return false;
+
+    size_t i = symtab->nentries;
+    symtab->entries[i].name         = name;
+    symtab->entries[i].stack_offset = symtab->curr_stack_offset - stack_offset;
+    symtab->curr_stack_offset      -= stack_offset;
+    symtab->nentries++;
+
+    return true;
+}
+
+static bool
+check_expression(struct symtable *symtab, struct astnode *node)
+{
+    if (!node) return true;
+
+    switch (node->type)
+    {
+        case NODE_INT_LITERAL:
+            return true;
+    
+        case NODE_IDENT:
+            if (lookup_sym(symtab, node->as.ident) < 0)
+            {
+                fprintf(stderr, "small-compiler: error: use of undeclared variable '%s'\n",
+                        node->as.ident);
+                return false;
+            }
+            return true;
+        case NODE_ADD:
+        case NODE_SUB:
+        case NODE_MUL:
+        case NODE_DIV:
+        case NODE_ASSIGN:
+            {
+                bool left = check_expression(symtab, node->as.binary.left);
+                bool right = check_expression(symtab, node->as.binary.right);
+                return left && right;
+            }
+        case NODE_DECL:
+            return true;
+    }
+    
+    return true;
+}
+
+bool
+analyze_program(struct program *program)
+{
+    size_t i;
+    bool ret = true;
+    for (i = 0; i < program->nnodes; i++)
+    {
+        struct astnode *node = program->nodes[i];
+
+        if (node->type == NODE_DECL)
+        {
+            // if there is an assignment to the declaration, we recursively check
+            // the variables in it if they exist or not
+            char *name = node->as.decl.name;
+            if (node->as.decl.init)
+                if (!check_expression(&symtable, node->as.decl.init))
+                    ret = false;
+
+            // we check if it already exists
+            // if it doesn't, we see if we can insert it, if there is no empty slot
+            // we just end the program
+            if (lookup_sym(&symtable, name) < 0)
+                COMPILER_ASSERT(insert_sym(&symtable, name, 4), "symtable is full");
+            else
+            {
+                fprintf(stderr, "small-compiler: error: redeclaration of '%s'\n",
+                        name);
+                ret = false;
+            }
+            
+        }
+        else if (node->type == NODE_ASSIGN)
+        {
+            char *left_name = node->as.binary.left->as.ident;
+            if (lookup_sym(&symtable, left_name) < 0)
+            {
+                fprintf(stderr, "small-compiler: error: use of undefined variable '%s'\n",
+                        left_name);
+                ret = false;
+            }
+
+            if (!check_expression(&symtable, node->as.binary.right))
+                ret = false;
+        }
+        else
+            if (!check_expression(&symtable, node))
+                ret = false;
+    }
+
+    return ret;
+}
+/* common.c */
+
+#include "common.h"
+
+void
+compiler_internal_abort(const char *file, int line, const char *fmt, ...)
+{
+    va_list args;
+
+    va_start(args, fmt);
+    fprintf(stderr, "internal compiler error:\n");
+    fprintf(stderr, "%s: %i: ", file, line);
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\n");
+    va_end(args);
+
+    exit(EXIT_FAILURE);
+}
+
+bool
+equal(const char *s1, const char *s2)
+{
+    return (strcmp(s1, s2) == 0);
+}
+
+char *
+strdup(const char *s)
+{
+    char *p = malloc(strlen(s) + 1);
+    COMPILER_ASSERT(p, "fatal! out of memory");
+    strcpy(p, s);
+    return p;
+}
+/* lexer.c */
+
+#include "common.h"
+
+#include "lexer.h"
+
+struct token tokens[MAX_TOKENS];
+size_t ntokens;
+struct kwentry kwtable[] = 
+{
+    { KWORD_INT, "int" }
+};
+size_t nkw = sizeof(kwtable) / sizeof(kwtable[0]);
+
+static inline bool
+is_ident_start(unsigned char c)
+{
+    return (c >= 'a' && c <= 'z') ||
+           (c >= 'A' && c <= 'Z') ||
+           (c == '_');
+}
+
+static inline bool
+is_ident_body(unsigned char c)
+{
+    return is_ident_start(c) ||
+           (c >= '0' && c <= '9');
+}
+
+static inline void
+emit(struct token *t)
+{
+    if (ntokens < MAX_TOKENS)
+        tokens[ntokens++] = *t;
+    else
+    {
+        fprintf(stderr, "too many tokens\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static inline unsigned char
+peek(struct lexer *lexer)
+{
+    return *lexer->p;
+}
+
+static inline unsigned char
+next(struct lexer *lexer)
+{
+    if (peek(lexer))
+    {
+        lexer->column++;
+        return *lexer->p++;
+    } else
+        return '\0';
+}
+
+static inline void
+copy_data(struct lexer *lexer, struct token *t)
+{
+    t->line = lexer->line;
+    t->column = lexer->column;
+}
+
+static struct kwentry *
+get_kwentry(const char *kw)
+{
+    struct kwentry *p;
+    for (p = kwtable; p < kwtable + nkw; p++)
+        if (strcmp(p->kw, kw) == 0)
+            return p;
+
+    return NULL;
+}
+
+static enum toktype
+get_symbol_type(struct lexer *lexer, const unsigned char c)
+{
+    switch(c)
+    {
+        case '=':
+            return EQUALS;
+        case '+':
+            return PLUS;
+        case '-':
+            return MINUS;
+        case '*':
+            return STAR;
+        case '/':
+            return FSLASH;
+        case ';':
+            return SEMICOLON;
+        case '\0':
+            return END;
+        default:
+            fprintf(stderr, "%i:%i: what is this token: %c\n",
+                lexer->line, lexer->column, c);
+            return UNKNOWN;
+    }
+}
+
+static void
+skip_whitespace(struct lexer *lexer)
+{
+    unsigned char c;
+    while ((c = peek(lexer)) && isspace(c))
+    {
+        (void)next(lexer);
+        if (c == '\n')
+        {
+            lexer->column = 1;
+            lexer->line++;
+        }
+        else if (c == '\t')
+            lexer->column += COLUMN_TAB_INCREMENT(lexer->column) - 1;
+    }
+}
+
+static void
+lex_symbol(struct lexer *lexer)
+{
+    struct token t;
+    unsigned char c = peek(lexer);
+    t.kind = get_symbol_type(lexer, c);
+    t.err = 0;
+    if (t.kind == UNKNOWN)
+        t.err = lexer->err = 1;
+    copy_data(lexer, &t);
+    emit(&t);
+    (void)next(lexer);
+}
+
+static void
+lex_ident(struct lexer *lexer)
+{
+    if (!is_ident_start(peek(lexer)))
+        return;
+
+    struct token t;
+    copy_data(lexer, &t);
+    struct kwentry *p;
+    unsigned char c;
+    int i = 0;
+
+    while ((c = peek(lexer)) && is_ident_body(c))
+    {
+        if (i < MAX_IDENT)
+            t.ident[i++] = c;
+        (void)next(lexer);
+    }
+
+    t.ident[i] = '\0';
+    t.err = 0;
+    t.kind = ( (p = get_kwentry(t.ident)) ) 
+                ? p->kind : IDENT;
+    emit(&t);
+}
+
+static void
+lex_num(struct lexer *lexer)
+{
+    if (!isdigit(peek(lexer)))
+        return;
+
+    char num[MAX_IDENT + 1];
+    struct token t;
+    copy_data(lexer, &t);
+    int i = 0;
+
+    while (isdigit(peek(lexer)))
+    {
+        unsigned char c = next(lexer);
+        if (i < MAX_IDENT)
+            num[i++] = c;
+    }
+
+    num[i] = '\0';
+    t.i = atoi(num);
+    t.err = 0;
+    t.kind = INT;
+    emit(&t);
+}
+
+struct lexer
+lex(const unsigned char *src)
+{
+    struct lexer lexer;
+
+    lexer.src  = lexer.p      = src;
+    lexer.line = lexer.column = 1;
+    lexer.err  = 0;
+
+    unsigned char c;
+    while ( (c = peek(&lexer)) )
+    {
+        if (is_ident_start(c)) lex_ident(&lexer);
+        else if (isdigit(c)) lex_num(&lexer);
+        else if (isspace(c)) skip_whitespace(&lexer);
+        else lex_symbol(&lexer);
+    }
+
+    lex_symbol(&lexer);
+    return lexer;
+}
+
+/* this main.c is just temporary,
+ * I'm testing the lexer, the parser,
+ * etc...
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+
+#include "lexer.h"
+#include "parser.h"
+#include "codegen.h"
+
+#define MAX_LINE 256
+
+static const char *token_names[] = {
+    [KWORD_INT] = "KWORD_INT",
+    [IDENT]     = "IDENT",
+    [INT]       = "INT",
+    [EQUALS]    = "EQUALS",
+    [PLUS]      = "PLUS",
+    [MINUS]     = "MINUS",
+    [STAR]      = "STAR",
+    [FSLASH]    = "FSLASH",
+    [SEMICOLON] = "SEMICOLON",
+    [END]       = "END",
+    [UNKNOWN]   = "UNKNOWN"
+};
+
+static void error(char *fmt, ...)
+{
+    va_list args;
+
+    va_start(args, fmt);
+    fprintf(stderr, "small-compiler: ");
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\n");
+    va_end(args);
+
+    exit(EXIT_FAILURE);
+}
+
+static unsigned char *readfile(const char *filename)
+{
+    FILE *fp = fopen(filename, "r");
+    if (!fp) return NULL;
+
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    rewind(fp);
+
+    if (size < 0)
+    {
+        fclose(fp);
+        error("failure while reading the size of %s", filename);
+    }
+
+    unsigned char *buf = malloc(size + 1);
+    if (!buf)
+    {
+        fclose(fp);
+        error("fatal: out of memory");
+    }
+
+    size_t bytes = fread(buf, 1, size, fp);
+    buf[bytes] = '\0';
+    return buf;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc != 2)
+    {
+        fprintf(stderr, "usage: ./build/small-compiler test.c\n");
+        exit(EXIT_FAILURE);
+    }
+
+    unsigned char *buf = readfile(argv[1]);
+    struct lexer l = lex(buf);
+    if (l.err)
+    {
+        fprintf(stderr, "lexical errors encountered. aborting\n");
+        free(buf);
+        return EXIT_FAILURE;
+    }
+
+    for (size_t i = 0; i < ntokens; i++)
+        printf("%s ", token_names[(int)tokens[i].kind]);
+    printf("\n");
+    struct parser p;
+    p.tokens = tokens;
+    p.ntokens = ntokens;
+    p.pos = p.err = 0;
+
+    struct program program = parse_program(&p);
+    if (p.err)
+    {
+        fprintf(stderr, "parsing errors occurred. aborting\n");
+        free(buf);
+        return EXIT_FAILURE;
+    }
+
+    // 5. Semantic Analysis (Our symbol table and variable check!)
+    init_symtab();
+    if (!analyze_program(&program))
+    {
+        fprintf(stderr, "Semantic errors encountered. Aborting code generation.\n");
+        free(buf);
+        return EXIT_FAILURE;
+    }
+
+    printf("\n\033[32m\033[1mSuccess! program parsed and analyzed nicely :D!\033[0m\n\n");
+    free(buf);
+    return EXIT_SUCCESS;
+}
+/* parser.c */
+
+#include "common.h"
+
+#include "lexer.h"
+#include "parser.h"
+
+static struct astnode *astnode_arr[MAX_NODES];
+static size_t nnodes;
+
+struct astnode *parse_primary(struct parser *p);
+struct astnode *parse_binary(struct parser *p, struct astnode *left);
+struct astnode *parse_assignment(struct parser *p, struct astnode *left);
+struct astnode *parse_declaration(struct parser *parser);
+struct astnode *parse_expression(struct parser *parser, enum precedence binding_power);
+struct astnode *parse_statement(struct parser *parser);
+
+static void parser_vreport_error(struct parser *parser, char *msg, va_list args); 
+static void parser_report_error(struct parser *parser, char *msg, ...);
+
+struct parser_rule
+{
+    struct astnode* (*nud)(struct parser *);
+    struct astnode* (*led)(struct parser *, struct astnode *);
+    enum precedence precedence;
+};
+
+static struct parser_rule rules[] =
+{
+    [KWORD_INT]     = { NULL,           NULL,             PREC_NONE },
+    [IDENT]         = { parse_primary,  NULL,             PREC_NONE },
+    [INT]           = { parse_primary,  NULL,             PREC_NONE },
+    [EQUALS]        = { NULL,           parse_assignment, PREC_ASSIGN },
+    [PLUS]          = { NULL,           parse_binary,     PREC_TERM },
+    [MINUS]         = { NULL,           parse_binary,     PREC_TERM },
+    [STAR]          = { NULL,           parse_binary,     PREC_FACTOR },
+    [FSLASH]        = { NULL,           parse_binary,     PREC_FACTOR },
+    [SEMICOLON]     = { NULL,           NULL,             PREC_NONE },
+    [END]           = { NULL,           NULL,             PREC_NONE },
+    [UNKNOWN]       = { NULL,           NULL,             PREC_NONE },
+};
+
+struct astnode*
+make_astnode(enum node_type type)
+{
+    struct astnode *np = malloc(sizeof(struct astnode));
+    COMPILER_ASSERT(np, "fatal! out of memory");
+    np->type = type;
+    COMPILER_ASSERT(nnodes < MAX_NODES, "too many nodes");
+    astnode_arr[nnodes++] = np;
+    return np;
+}
+
+static inline bool
+is_type_specifier(enum toktype kind)
+{
+    switch (kind)
+    {
+        case KWORD_INT:
+        /// ....
+            return true;
+        default:
+            return false;
+    }
+}
+
+static inline struct token
+peek(struct parser *parser)
+{
+    return parser->tokens[parser->pos];
+}
+
+static inline struct token
+peek_prev(struct parser *parser)
+{
+    COMPILER_ASSERT(parser->pos > 0U, "asking for nonexistent previous token");
+    return parser->tokens[parser->pos - 1];
+}
+
+static inline struct token
+advance(struct parser *parser)
+{
+    COMPILER_ASSERT(parser->pos < parser->ntokens, "can't advance");
+    return parser->tokens[parser->pos++];
+}
+
+static inline bool
+match(struct parser *parser, enum toktype type)
+{
+    return (peek(parser).kind == type);
+}
+
+static void
+recover(struct parser *parser)
+{
+    while (!match(parser, SEMICOLON) &&
+           !match(parser, END))
+        (void)advance(parser);
+
+    if (match(parser, SEMICOLON))
+        (void)advance(parser);
+}
+
+static void
+parser_vreport_error(struct parser *parser, char *msg, va_list args) 
+{
+    fprintf(stderr, "small-compiler: ");
+    vfprintf(stderr, msg, args);
+    fprintf(stderr, "\n");
+
+    parser->err = 1;
+    recover(parser);
+}
+
+static void
+parser_report_error(struct parser *parser, char *msg, ...) 
+{
+    va_list args;
+    va_start(args, msg);
+    parser_vreport_error(parser, msg, args);
+    va_end(args);
+}
+
+static bool
+expect(struct parser *parser, enum toktype kind, char *msg, ...)
+{
+    if (!match(parser, kind))
+    {
+        va_list args;
+        va_start(args, msg);
+        parser_vreport_error(parser, msg, args);
+        va_end(args);
+        
+        return false;
+    }
+
+    (void)advance(parser);
+    return true;
+}
+
+struct astnode *
+parse_primary(struct parser *parser)
+{
+    struct token tok = peek_prev(parser);
+    struct astnode *node = NULL;
+    switch (tok.kind)
+    {
+        case INT:
+            node = make_astnode(NODE_INT_LITERAL);
+            node->as.i = tok.i;
+            break;
+        case IDENT:
+            node = make_astnode(NODE_IDENT);
+            node->as.ident = strdup(tok.ident);
+            break;
+        default:
+            COMPILER_ASSERT(0, "unexpected token type in parser");
+    }
+
+    return node;
+}
+
+struct astnode *
+parse_binary(struct parser *parser, struct astnode *left)
+{
+    struct token tok = peek_prev(parser);
+    COMPILER_ASSERT(tok.kind == PLUS   ||
+                    tok.kind == MINUS  ||
+                    tok.kind == STAR   ||
+                    tok.kind == FSLASH,
+                    "unexpected token type in parser");
+    enum precedence prcd  = rules[tok.kind].precedence;
+    struct astnode *right = parse_expression(parser, prcd);
+    struct astnode *node  = NULL;
+
+    switch (tok.kind)
+    {
+        case PLUS:
+            node = make_astnode(NODE_ADD);
+            break;
+        case MINUS:
+            node = make_astnode(NODE_SUB);
+            break;
+        case STAR:
+            node = make_astnode(NODE_MUL);
+            break;
+        case FSLASH:
+            node = make_astnode(NODE_DIV);
+            break;
+        default:
+            COMPILER_ASSERT(0, "unexpected token type in parser");
+    }
+
+    node->as.binary.left  = left;
+    node->as.binary.right = right;
+    return node;
+}
+
+struct astnode *
+parse_assignment(struct parser *parser, struct astnode *left)
+{
+    if (left->type != NODE_IDENT)
+    {
+        parser_report_error(parser, "left value required as left operand of assignment");
+        return NULL;
+    }
+
+    // we allow the nesting of subsequent assignments (a = b = 67) to the right
+    // by lowering the precedence to PREC_ASSIGN - 1
+    struct astnode *right = parse_expression(parser, PREC_ASSIGN - 1);
+    if (right == NULL)
+        return NULL;
+    struct astnode *node = make_astnode(NODE_ASSIGN);
+
+    node->as.binary.left  = left;
+    node->as.binary.right = right;
+    return node;
+}
+
+struct astnode *
+parse_expression(struct parser *parser, enum precedence binding_power)
+{
+    struct token tok = advance(parser);
+    struct parser_rule handler = rules[tok.kind];
+    struct astnode *left;
+
+    if (handler.nud == NULL)
+    {
+        parser_report_error(parser, "%i: %i: Syntax error: expected expression",
+                            tok.line, tok.column);
+        return NULL;
+    }
+
+    left = handler.nud(parser);
+    struct token next = peek(parser);
+    enum precedence prcd = rules[next.kind].precedence;
+    while (binding_power < prcd && rules[next.kind].led)
+    {
+        next = advance(parser);
+        left = rules[next.kind].led(parser, left);
+
+        next = peek(parser);
+        prcd = rules[next.kind].precedence;
+    }
+
+    return left;
+}
+
+struct astnode *
+parse_declaration(struct parser *parser)
+{
+    if (!expect(parser, KWORD_INT, "expected type specifier for declaration"))
+        return NULL;
+
+    if (!expect(parser, IDENT, "expected variable identifier after type specifier"))
+        return NULL;
+    struct token idtok = peek_prev(parser);
+    struct astnode *init_expr = NULL;
+    struct astnode *np = NULL;
+
+    if (match(parser, EQUALS))
+    {
+        (void)advance(parser);
+        init_expr = parse_expression(parser, PREC_ASSIGN - 1);
+        if (init_expr == NULL)
+            return NULL;
+    }
+
+    if (!expect(parser, SEMICOLON, "expected ';' after statement"))
+        return NULL;
+
+    np = make_astnode(NODE_DECL);
+    np->as.decl.name   = strdup(idtok.ident);
+    np->as.decl.init   = init_expr;
+    return np;
+}
+
+struct astnode *
+parse_statement(struct parser *parser)
+{
+    if (is_type_specifier(peek(parser).kind))
+        return parse_declaration(parser);
+    else
+    {
+        struct astnode *expr = parse_expression(parser, PREC_ASSIGN);
+        if (!expect(parser, SEMICOLON, "expected ';' after statement"))
+            return NULL;
+        return expr;
+    }
+}
+
+struct program
+parse_program(struct parser *parser)
+{
+    struct program program = {0};
+
+    while (!match(parser, END))
+    {
+        struct astnode *stmt = parse_statement(parser);
+        if (stmt == NULL ||
+            parser->err)
+        {
+            parser->err = 0;
+            continue;
+        }
+    
+        COMPILER_ASSERT(program.nnodes < MAX_NODES, "Too many arguments in program");
+        program.nodes[program.nnodes++] = stmt;
+    }
+
+    return program;
+}
+/* codegen.h */
+
+#ifndef CODEGEN_H
+#define CODEGEN_H
+
+#include "common.h"
+
+#include "parser.h"
+
+#define SYMBOL_TABLE_ENTRIES 2048
+
+struct sym
+{
+    char *name;
+    signed int stack_offset;
+};
+
+struct symtable
+{
+    struct sym entries[SYMBOL_TABLE_ENTRIES];
+    size_t nentries;
+    ssize_t curr_stack_offset;
+};
+
+struct symtable *init_symtab(void);
+int lookup_sym(struct symtable *, char *);
+bool insert_sym(struct symtable *, char *, signed int);
+
+bool analyze_program(struct program *program);
+
+extern struct symtable symtable;
+
+#endif
+/* common.h */
+
+#ifndef COMMON_H
+#define COMMON_H
+
+/* global includes */
+#include <stdio.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include <stdbool.h>
+#include <string.h>
+#include <stdarg.h>
+#include <ctype.h>
+#include <sys/types.h>
+
+/* global limits and config */
+#define MAX_IDENT           32
+#define MAX_TOKENS          4096
+#define TAB_WIDTH           4
+#define MAX_NODES           2048
+
+/* global util macros */
+#define COLUMN_TAB_INCREMENT(c) \
+        (TAB_WIDTH - (((c) - 1) % TAB_WIDTH))
+
+/* global util functions */
+bool  equal(const char *, const char *);
+char *strdup(const char *);
+
+/* internal compiler assertions */
+void compiler_internal_abort(const char *file, int line, const char *fmt, ...);
+
+#define COMPILER_ASSERT(condition, msg)                         \
+    do {                                                        \
+        if (!(condition)) {                                     \
+            compiler_internal_abort(__FILE__, __LINE__, msg);   \
+        }                                                       \
+    } while (0)
+
+#endif
+/* lexer.h */
+
+#ifndef LEXER_H
+#define LEXER_H
+
+#include "common.h"
+
+enum toktype
+{
+    KWORD_INT = 0,
+    IDENT,
+    INT,
+    EQUALS,
+    PLUS,
+    MINUS,
+    STAR,
+    FSLASH,
+    SEMICOLON,
+    END,
+    UNKNOWN
+};
+
+struct token
+{
+    union
+    {
+        char ident[MAX_IDENT + 1];
+        int  i;
+        char c;
+    };
+
+    enum toktype kind;
+    int          line;
+    int          column;
+    int          err;
+};
+
+struct kwentry
+{
+    enum toktype kind;
+    const char *kw;
+};
+
+struct lexer
+{
+    const unsigned char* src;
+    const unsigned char* p;
+    int                  line;
+    int                  column;
+    int                  err;
+};
+
+struct lexer lex(const unsigned char *src);
+
+extern struct token tokens[];
+extern size_t ntokens;
+extern struct kwentry kwtable[];
+extern size_t nkw;
+
+
+#endif
+/* parser.h */
+
+#ifndef PARSER_H
+#define PARSER_H
+
+#include "common.h"
+
+#include "lexer.h"
+
+#define MAX_PROGRAM_NODES 5120
+
+enum node_type
+{
+	NODE_INT_LITERAL = 0,
+	NODE_IDENT,
+	NODE_ASSIGN,
+	NODE_ADD,
+	NODE_SUB,
+	NODE_MUL,
+	NODE_DIV,
+    NODE_DECL
+};
+
+struct astnode
+{
+	enum node_type type;
+	union
+	{
+		int i;
+		char *ident;
+
+		struct
+		{
+			struct astnode *left;
+			struct astnode *right;
+		} binary;
+
+        struct
+        {
+            char *name;
+            struct astnode *init;
+        } decl;
+	} as;
+};
+
+struct parser
+{
+	struct token* tokens;
+    size_t        ntokens;
+    size_t        pos;
+	int           err;
+};
+
+struct program
+{
+    struct astnode *nodes[MAX_PROGRAM_NODES];
+    size_t nnodes;
+};
+
+enum precedence
+{
+    PREC_NONE = 0,
+    PREC_ASSIGN,
+    PREC_TERM,
+    PREC_FACTOR,
+    PREC_PRIMARY
+};
+
+struct program parse_program(struct parser *p);
+
+#endif
