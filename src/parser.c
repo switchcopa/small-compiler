@@ -14,6 +14,7 @@ struct astnode *parse_assignment(struct parser *p, struct astnode *left);
 struct astnode *parse_declaration(struct parser *parser);
 struct astnode *parse_expression(struct parser *parser, enum precedence binding_power);
 
+static void parser_vreport_error(struct parser *parser, char *msg, va_list args); 
 static void parser_report_error(struct parser *parser, char *msg, ...);
 
 struct parser_rule
@@ -290,5 +291,21 @@ parse_statement(struct parser *parser)
 struct program
 parse_program(struct parser *parser)
 {
-    struct program program = {};
+    struct program program = {0};
+
+    while (!match(parser, END))
+    {
+        struct astnode *stmt = parse_statement(parser);
+        if (stmt == NULL ||
+            parser->err)
+        {
+            parser->err = 0;
+            continue;
+        }
+    
+        COMPILER_ASSERT(program.nnodes < MAX_NODES, "Too many arguments in program");
+        program.nodes[program.nnodes++] = stmt;
+    }
+
+    return program;
 }

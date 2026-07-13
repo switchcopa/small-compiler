@@ -7,7 +7,7 @@
 
 #include "lexer.h"
 
-#define MAX_NODES 5120
+#define MAX_PROGRAM_NODES 5120
 
 enum node_type
 {
@@ -53,7 +53,7 @@ struct parser
 
 struct program
 {
-    struct astnode *nodes[MAX_NODES];
+    struct astnode *nodes[MAX_PROGRAM_NODES];
     size_t nnodes;
 };
 

@@ -5,6 +5,8 @@
 
 #include "common.h"
 
+#include "parser.h"
+
 #define SYMBOL_TABLE_ENTRIES 2048
 
 struct sym
@@ -20,8 +22,12 @@ struct symtable
     ssize_t curr_stack_offset;
 };
 
-struct symtable *make_symtab(void);
+struct symtable *init_symtab(void);
 int lookup_sym(struct symtable *, char *);
 bool insert_sym(struct symtable *, char *, signed int);
+
+bool analyze_program(struct program *program);
+
+extern struct symtable symtable;
 
 #endif
