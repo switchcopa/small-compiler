@@ -41,33 +41,6 @@ static void error(char *fmt, ...)
     exit(EXIT_FAILURE);
 }
 
-static unsigned char *readfile(const char *filename)
-{
-    FILE *fp = fopen(filename, "r");
-    if (!fp) return NULL;
-
-    fseek(fp, 0, SEEK_END);
-    long size = ftell(fp);
-    rewind(fp);
-
-    if (size < 0)
-    {
-        fclose(fp);
-        error("failure while reading the size of %s", filename);
-    }
-
-    unsigned char *buf = malloc(size + 1);
-    if (!buf)
-    {
-        fclose(fp);
-        error("fatal: out of memory");
-    }
-
-    size_t bytes = fread(buf, 1, size, fp);
-    buf[bytes] = '\0';
-    return buf;
-}
-
 int main(int argc, char **argv)
 {
     if (argc != 2)
@@ -76,7 +49,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    unsigned char *buf = readfile(argv[1]);
+    struct file *buf = readfile(argv[1]);
     struct lexer l = lex(buf);
     if (l.err)
     {
@@ -87,7 +60,7 @@ int main(int argc, char **argv)
 
     for (size_t i = 0; i < ntokens; i++)
         printf("%s ", token_names[(int)tokens[i].kind]);
-    printf("\n");
+    printf("\n\n");
     struct parser p;
     p.tokens = tokens;
     p.ntokens = ntokens;
@@ -110,7 +83,10 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    printf("\n\033[32m\033[1mSuccess! program parsed and analyzed nicely :D!\033[0m\n\n");
+    for (size_t i = 0; i < symtable.nentries; i++)
+        printf("%s : %d\n", symtable.entries[i].name, symtable.entries[i].stack_offset);
+
+    printf("\n\033[32m\033[1mSuccess! program parsed and analyzed nicely :D!\033[0m\n");
     free(buf);
     return EXIT_SUCCESS;
 }

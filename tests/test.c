@@ -2,5 +2,8 @@
 
 int x;
 int y;
-x = 5 + 2;
-y = x + 2;
+int z;
+
+x = 5 + 3 * 4;
+y = x - 2;
+z = x + y; 

@@ -12,7 +12,9 @@
 struct sym
 {
     char *name;
+    struct astnode *expr;
     signed int stack_offset;
+    bool is_defined; 
 };
 
 struct symtable
@@ -24,7 +26,7 @@ struct symtable
 
 struct symtable *init_symtab(void);
 int lookup_sym(struct symtable *, char *);
-bool insert_sym(struct symtable *, char *, signed int);
+bool insert_sym(struct symtable *, char *, struct astnode *, signed int);
 
 bool analyze_program(struct program *program);
 

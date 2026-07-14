@@ -49,7 +49,7 @@ Run the compiler:
 
 ## Syntax specification
 
-Currently, the project only has a lexer, more features will be added soon.
+Currently, the project only has a lexer, features will be added soon.
 
 ## 'To-do's
 

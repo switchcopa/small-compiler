@@ -20,6 +20,14 @@ enum toktype
     UNKNOWN
 };
 
+struct file
+{
+    char    *filename;
+    char    *data;
+    size_t   size;
+    int      fd;
+};
+
 struct token
 {
     union
@@ -29,6 +37,7 @@ struct token
         char c;
     };
 
+    struct file  *file;
     enum toktype kind;
     int          line;
     int          column;
@@ -43,14 +52,17 @@ struct kwentry
 
 struct lexer
 {
-    const unsigned char* src;
-    const unsigned char* p;
+    struct token         tokens[MAX_TOKENS];
+    size_t               ntokens;
+    struct file*         file;
+    const char*          src;
+    const char*          p;
     int                  line;
     int                  column;
     int                  err;
 };
 
-struct lexer lex(const unsigned char *src);
+struct lexer *lex(const char *);
 
 extern struct token tokens[];
 extern size_t ntokens;

@@ -299,12 +299,8 @@ parse_program(struct parser *parser)
     while (!match(parser, END))
     {
         struct astnode *stmt = parse_statement(parser);
-        if (stmt == NULL ||
-            parser->err)
-        {
-            parser->err = 0;
+        if (stmt == NULL)
             continue;
-        }
     
         COMPILER_ASSERT(program.nnodes < MAX_NODES, "Too many arguments in program");
         program.nodes[program.nnodes++] = stmt;

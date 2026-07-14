@@ -4,8 +4,6 @@
 
 #include "lexer.h"
 
-struct token tokens[MAX_TOKENS];
-size_t ntokens;
 struct kwentry kwtable[] = 
 {
     { KWORD_INT, "int" }
@@ -13,7 +11,7 @@ struct kwentry kwtable[] =
 size_t nkw = sizeof(kwtable) / sizeof(kwtable[0]);
 
 static inline bool
-is_ident_start(unsigned char c)
+is_ident_start(char c)
 {
     return (c >= 'a' && c <= 'z') ||
            (c >= 'A' && c <= 'Z') ||
@@ -21,7 +19,7 @@ is_ident_start(unsigned char c)
 }
 
 static inline bool
-is_ident_body(unsigned char c)
+is_ident_body(char c)
 {
     return is_ident_start(c) ||
            (c >= '0' && c <= '9');
@@ -39,13 +37,13 @@ emit(struct token *t)
     }
 }
 
-static inline unsigned char
+static inline char
 peek(struct lexer *lexer)
 {
     return *lexer->p;
 }
 
-static inline unsigned char
+static inline char
 next(struct lexer *lexer)
 {
     if (peek(lexer))
@@ -75,7 +73,7 @@ get_kwentry(const char *kw)
 }
 
 static enum toktype
-get_symbol_type(struct lexer *lexer, const unsigned char c)
+get_symbol_type(struct lexer *lexer, const char c)
 {
     switch(c)
     {
@@ -103,7 +101,7 @@ get_symbol_type(struct lexer *lexer, const unsigned char c)
 static void
 skip_whitespace(struct lexer *lexer)
 {
-    unsigned char c;
+    char c;
     while ((c = peek(lexer)) && isspace(c))
     {
         (void)next(lexer);
@@ -121,7 +119,7 @@ static void
 lex_symbol(struct lexer *lexer)
 {
     struct token t;
-    unsigned char c = peek(lexer);
+    char c = peek(lexer);
     t.kind = get_symbol_type(lexer, c);
     t.err = 0;
     if (t.kind == UNKNOWN)
@@ -140,7 +138,7 @@ lex_ident(struct lexer *lexer)
     struct token t;
     copy_data(lexer, &t);
     struct kwentry *p;
-    unsigned char c;
+    char c;
     int i = 0;
 
     while ((c = peek(lexer)) && is_ident_body(c))
@@ -170,7 +168,7 @@ lex_num(struct lexer *lexer)
 
     while (isdigit(peek(lexer)))
     {
-        unsigned char c = next(lexer);
+        char c = next(lexer);
         if (i < MAX_IDENT)
             num[i++] = c;
     }
@@ -182,24 +180,27 @@ lex_num(struct lexer *lexer)
     emit(&t);
 }
 
-struct lexer
-lex(const unsigned char *src)
+struct lexer *
+lex(const char *filename)
 {
-    struct lexer lexer;
+    struct file *file = readfile(filename);
+    if (!file) return NULL;
+    struct lexer *lexer = malloc(sizeof(struct lexer));
+    COMPILER_ASSERT(lexer, "fatal! out of memory");
 
-    lexer.src  = lexer.p      = src;
-    lexer.line = lexer.column = 1;
-    lexer.err  = 0;
+    lexer->src  = lexer->p      = file->data;
+    lexer->line = lexer->column = 1;
+    lexer->err  = 0;
 
-    unsigned char c;
-    while ( (c = peek(&lexer)) )
+    char c;
+    while ( (c = peek(lexer)) )
     {
-        if (is_ident_start(c)) lex_ident(&lexer);
-        else if (isdigit(c)) lex_num(&lexer);
-        else if (isspace(c)) skip_whitespace(&lexer);
-        else lex_symbol(&lexer);
+        if (is_ident_start(c)) lex_ident(lexer);
+        else if (isdigit(c)) lex_num(lexer);
+        else if (isspace(c)) skip_whitespace(lexer);
+        else lex_symbol(lexer);
     }
 
-    lex_symbol(&lexer);
+    lex_symbol(lexer);
     return lexer;
 }
