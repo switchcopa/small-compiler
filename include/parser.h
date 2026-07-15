@@ -48,7 +48,7 @@ struct parser
 	struct token* tokens;
     size_t        ntokens;
     size_t        pos;
-	int           err;
+	bool		  err;
 };
 
 struct program
@@ -66,6 +66,6 @@ enum precedence
     PREC_PRIMARY
 };
 
-struct program parse_program(struct parser *p);
+struct program parse_program(struct parser *);
 
 #endif

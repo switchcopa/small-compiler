@@ -103,7 +103,7 @@ parser_vreport_error(struct parser *parser, char *msg, va_list args)
     vfprintf(stderr, msg, args);
     fprintf(stderr, "\n");
 
-    parser->err = 1;
+    parser->err = true;
     recover(parser);
 }
 
@@ -297,7 +297,7 @@ parse_program(struct parser *parser)
         if (stmt == NULL)
             continue;
     
-        COMPILER_ASSERT(program.nnodes < MAX_NODES, "Too many arguments in program");
+        COMPILER_ASSERT(program.nnodes < MAX_PROGRAM_NODES, "Too many arguments in program");
         program.nodes[program.nnodes++] = stmt;
     }
 
