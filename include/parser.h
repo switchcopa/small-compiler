@@ -43,18 +43,21 @@ struct astnode
 	} as;
 };
 
-struct parser
-{
-	struct token* tokens;
-    size_t        ntokens;
-    size_t        pos;
-	bool		  err;
-};
-
 struct program
 {
     struct astnode *nodes[MAX_PROGRAM_NODES];
     size_t nnodes;
+};
+
+struct parser
+{
+	struct lexer*   lexer;
+	struct file*    file;
+	struct token*   tokens;
+	struct program* program;
+    size_t          ntokens;
+    size_t          pos;
+	bool		    err;
 };
 
 enum precedence
@@ -66,6 +69,7 @@ enum precedence
     PREC_PRIMARY
 };
 
-struct program parse_program(struct parser *);
+struct parser  *parse(struct lexer *);
+struct program *parse_program(struct parser *);
 
 #endif

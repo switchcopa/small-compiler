@@ -286,10 +286,11 @@ parse_statement(struct parser *parser)
     }
 }
 
-struct program
+struct program*
 parse_program(struct parser *parser)
 {
-    struct program program = {0};
+    struct program *program = malloc(sizeof(struct program));
+    COMPILER_ASSERT(program, "fatal! out of memory");
 
     while (!match(parser, END))
     {
@@ -297,9 +298,27 @@ parse_program(struct parser *parser)
         if (stmt == NULL)
             continue;
     
-        COMPILER_ASSERT(program.nnodes < MAX_PROGRAM_NODES, "Too many arguments in program");
-        program.nodes[program.nnodes++] = stmt;
+        COMPILER_ASSERT(program->nnodes < MAX_PROGRAM_NODES, "Too many arguments in program");
+        program->nodes[program->nnodes++] = stmt;
     }
 
     return program;
+}
+
+struct parser*
+parse(struct lexer *lexer)
+{
+    struct parser *parser = malloc(sizeof(struct parser));
+    COMPILER_ASSERT(parser, "fatal! out of memory");
+
+    parser->lexer   = lexer;
+    parser->file    = lexer->file;
+    parser->tokens  = lexer->tokens;
+    parser->ntokens = lexer->ntokens;
+    parser->pos     = 0U;
+    parser->err     = false;
+
+    struct program *program = parse_program(parser);
+    parser->program = program;
+    return parser;
 }

@@ -37,7 +37,7 @@ struct token
         char c;
     };
 
-    struct file  *file;
+    struct file* file;
     enum toktype kind;
     int          line;
     int          column;
