@@ -5,9 +5,6 @@
 #include "lexer.h"
 #include "parser.h"
 
-static struct astnode *astnode_arr[MAX_NODES];
-static size_t nnodes;
-
 struct astnode *parse_primary(struct parser *p);
 struct astnode *parse_binary(struct parser *p, struct astnode *left);
 struct astnode *parse_assignment(struct parser *p, struct astnode *left);
@@ -46,8 +43,6 @@ make_astnode(enum node_type type)
     struct astnode *np = malloc(sizeof(struct astnode));
     COMPILER_ASSERT(np, "fatal! out of memory");
     np->type = type;
-    COMPILER_ASSERT(nnodes < MAX_NODES, "too many nodes");
-    astnode_arr[nnodes++] = np;
     return np;
 }
 

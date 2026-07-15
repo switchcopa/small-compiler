@@ -41,7 +41,7 @@ struct token
     enum toktype kind;
     int          line;
     int          column;
-    int          err;
+    bool         err;
 };
 
 struct kwentry
@@ -59,15 +59,12 @@ struct lexer
     const char*          p;
     int                  line;
     int                  column;
-    int                  err;
+    bool                 err;
 };
 
 struct lexer *lex(const char *);
 
-extern struct token tokens[];
-extern size_t ntokens;
 extern struct kwentry kwtable[];
 extern size_t nkw;
-
 
 #endif

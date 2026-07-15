@@ -26,10 +26,10 @@ is_ident_body(char c)
 }
 
 static inline void
-emit(struct token *t)
+emit(struct lexer *lexer, struct token *t)
 {
-    if (ntokens < MAX_TOKENS)
-        tokens[ntokens++] = *t;
+    if (lexer->ntokens < MAX_TOKENS)
+        lexer->tokens[lexer->ntokens++] = *t;
     else
     {
         fprintf(stderr, "too many tokens\n");
@@ -57,8 +57,9 @@ next(struct lexer *lexer)
 static inline void
 copy_data(struct lexer *lexer, struct token *t)
 {
-    t->line = lexer->line;
+    t->line   = lexer->line;
     t->column = lexer->column;
+    t->file   = lexer->file;
 }
 
 static struct kwentry *
@@ -123,9 +124,10 @@ lex_symbol(struct lexer *lexer)
     t.kind = get_symbol_type(lexer, c);
     t.err = 0;
     if (t.kind == UNKNOWN)
-        t.err = lexer->err = 1;
+        t.err = lexer->err = true;
+
     copy_data(lexer, &t);
-    emit(&t);
+    emit(lexer, &t);
     (void)next(lexer);
 }
 
@@ -152,7 +154,7 @@ lex_ident(struct lexer *lexer)
     t.err = 0;
     t.kind = ( (p = get_kwentry(t.ident)) ) 
                 ? p->kind : IDENT;
-    emit(&t);
+    emit(lexer, &t);
 }
 
 static void
@@ -177,20 +179,27 @@ lex_num(struct lexer *lexer)
     t.i = atoi(num);
     t.err = 0;
     t.kind = INT;
-    emit(&t);
+    emit(lexer, &t);
 }
 
 struct lexer *
 lex(const char *filename)
 {
     struct file *file = readfile(filename);
-    if (!file) return NULL;
+    if (!file) 
+    {
+        fprintf(stderr, "failed to open or read file '%s'\n", filename);
+        return NULL;
+    }
+
     struct lexer *lexer = malloc(sizeof(struct lexer));
     COMPILER_ASSERT(lexer, "fatal! out of memory");
 
-    lexer->src  = lexer->p      = file->data;
-    lexer->line = lexer->column = 1;
-    lexer->err  = 0;
+    lexer->ntokens  = 0U;
+    lexer->file     = file;
+    lexer->src      = lexer->p      = file->data;
+    lexer->line     = lexer->column = 1;
+    lexer->err      = false;
 
     char c;
     while ( (c = peek(lexer)) )
