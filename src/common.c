@@ -69,9 +69,9 @@ readfile(const char *filename)
         return NULL;
     }
 
-    file->fd       = fileno(fp);
     file->filename = strdup(filename);
     file->data     = buf;
     file->size     = bytes;
+    fclose(fp);
     return file; 
 } 

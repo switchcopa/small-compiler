@@ -25,7 +25,6 @@ struct file
     char    *filename;
     char    *data;
     size_t   size;
-    int      fd;
 };
 
 struct token
