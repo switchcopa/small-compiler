@@ -20,13 +20,6 @@ enum toktype
     UNKNOWN
 };
 
-struct file
-{
-    char    *filename;
-    char    *data;
-    size_t   size;
-};
-
 struct token
 {
     union

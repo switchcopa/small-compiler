@@ -193,7 +193,7 @@ lex(const char *filename)
     }
 
     struct lexer *lexer = malloc(sizeof(struct lexer));
-    COMPILER_ASSERT(lexer, "fatal! out of memory");
+    COMPILER_ASSERT(lexer, OUT_OF_MEMORY_ERR);
 
     lexer->ntokens  = 0U;
     lexer->file     = file;

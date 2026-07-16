@@ -12,9 +12,6 @@ struct astnode *parse_declaration(struct parser *parser);
 struct astnode *parse_expression(struct parser *parser, enum precedence binding_power);
 struct astnode *parse_statement(struct parser *parser);
 
-static void parser_vreport_error(struct parser *parser, char *msg, va_list args); 
-static void parser_report_error(struct parser *parser, char *msg, ...);
-
 struct parser_rule
 {
     struct astnode* (*nud)(struct parser *);
@@ -41,7 +38,7 @@ struct astnode*
 make_astnode(enum node_type type)
 {
     struct astnode *np = malloc(sizeof(struct astnode));
-    COMPILER_ASSERT(np, "fatal! out of memory");
+    COMPILER_ASSERT(np, OUT_OF_MEMORY_ERR);
     np->type = type;
     return np;
 }
@@ -96,36 +93,21 @@ recover(struct parser *parser)
         (void)advance(parser);
 }
 
-static void
-parser_vreport_error(struct parser *parser, char *msg, va_list args) 
-{
-    fprintf(stderr, "small-compiler: ");
-    vfprintf(stderr, msg, args);
-    fprintf(stderr, "\n");
-
-    parser->err = true;
-    recover(parser);
-}
-
-static void
-parser_report_error(struct parser *parser, char *msg, ...) 
-{
-    va_list args;
-    va_start(args, msg);
-    parser_vreport_error(parser, msg, args);
-    va_end(args);
-}
-
 static bool
 expect(struct parser *parser, enum toktype kind, char *msg, ...)
 {
     if (!match(parser, kind))
     {
+        struct token t = peek(parser);
         va_list args;
         va_start(args, msg);
-        parser_vreport_error(parser, msg, args);
+        compiler_vreport_error(parser->file,
+                               ERR_ERROR,
+                               t.line,
+                               t.column,
+                               msg,
+                               args);
         va_end(args);
-        
         return false;
     }
 
@@ -290,7 +272,7 @@ struct program*
 parse_program(struct parser *parser)
 {
     struct program *program = malloc(sizeof(struct program));
-    COMPILER_ASSERT(program, "fatal! out of memory");
+    COMPILER_ASSERT(program, OUT_OF_MEMORY_ERR);
 
     while (!match(parser, END))
     {
@@ -309,7 +291,7 @@ struct parser*
 parse(struct lexer *lexer)
 {
     struct parser *parser = malloc(sizeof(struct parser));
-    COMPILER_ASSERT(parser, "fatal! out of memory");
+    COMPILER_ASSERT(parser, OUT_OF_MEMORY_ERR);
 
     parser->lexer   = lexer;
     parser->file    = lexer->file;
